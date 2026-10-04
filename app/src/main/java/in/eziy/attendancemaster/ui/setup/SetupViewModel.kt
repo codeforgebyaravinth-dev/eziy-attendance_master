@@ -32,6 +32,7 @@ class SetupViewModel(
     fun onEmployeeIdChange(v: String) { _uiState.value = _uiState.value.copy(employeeId = v) }
     fun onPinChange(v: String) { _uiState.value = _uiState.value.copy(pin = v) }
     fun clearError() { _uiState.value = _uiState.value.copy(errorMessage = null) }
+    fun resetSuccess() { _uiState.value = _uiState.value.copy(isSuccess = false) }
 
     fun authenticate() {
         val state = _uiState.value

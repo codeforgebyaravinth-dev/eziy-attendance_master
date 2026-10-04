@@ -28,8 +28,18 @@ class AttendanceRepositoryImpl(
         return SimpleDateFormat("hh:mm a", Locale.getDefault()).format(Date())
     }
 
+    private fun cleanBaseUrl(rawUrl: String): String {
+        var cleaned = rawUrl.trim().trimEnd('/')
+        if (cleaned.lowercase().endsWith("/face_attendance")) {
+            cleaned = cleaned.substring(0, cleaned.length - "/face_attendance".length)
+        }
+        return cleaned.trimEnd('/') + "/"
+    }
+
     private fun getApiService(baseUrl: String? = null): ApiService {
-        val targetUrl = (baseUrl ?: prefs.serverUrl).ifBlank { "https://eziy.in" }.trimEnd('/') + "/"
+        val raw = (baseUrl ?: prefs.serverUrl).ifBlank { "https://eziy.in" }
+        val targetUrl = cleanBaseUrl(raw)
+
         val okHttpClient = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
@@ -84,8 +94,9 @@ class AttendanceRepositoryImpl(
             val body = response.body()
             if (response.isSuccessful && body != null) {
                 if (body.success && !body.token.isNullOrBlank()) {
+                    val cleanedServer = cleanBaseUrl(baseUrl).trimEnd('/')
                     prefs.saveAuthDetails(
-                        server = baseUrl,
+                        server = cleanedServer,
                         company = body.employee?.companyName ?: "",
                         name = body.employee?.name ?: "",
                         id = employeeId,

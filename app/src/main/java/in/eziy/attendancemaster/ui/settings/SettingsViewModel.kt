@@ -23,11 +23,17 @@ class SettingsViewModel(
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
     init {
+        loadSettings()
+    }
+
+    fun loadSettings() {
         _uiState.value = SettingsUiState(
             serverUrl = prefs.serverUrl,
             companyName = prefs.companyName,
             employeeName = prefs.employeeName,
-            employeeId = prefs.employeeId
+            employeeId = prefs.employeeId,
+            isSaved = false,
+            isLoggedOut = false
         )
     }
 

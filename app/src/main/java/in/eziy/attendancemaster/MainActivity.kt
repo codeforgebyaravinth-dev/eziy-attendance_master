@@ -168,6 +168,9 @@ fun EziyNavApp(
                                                 homeViewModel.loadUserInfo()
                                                 homeViewModel.refreshStatus()
                                             }
+                                            if (item.route == "settings") {
+                                                settingsViewModel.loadSettings()
+                                            }
                                             navController.navigate(item.route) {
                                                 popUpTo(navController.graph.findStartDestination().id) {
                                                     saveState = true
@@ -202,8 +205,10 @@ fun EziyNavApp(
                     viewModel = setupViewModel,
                     onSetupSuccess = {
                         onStartMqtt()
+                        setupViewModel.resetSuccess()
                         homeViewModel.loadUserInfo()
                         homeViewModel.refreshStatus()
+                        settingsViewModel.loadSettings()
                         navController.navigate("home") {
                             popUpTo("setup") { inclusive = true }
                         }

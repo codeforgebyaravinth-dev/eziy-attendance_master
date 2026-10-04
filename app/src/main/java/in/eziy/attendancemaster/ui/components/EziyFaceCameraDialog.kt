@@ -1,7 +1,5 @@
 package `in`.eziy.attendancemaster.ui.components
 
-import android.content.Context
-import android.graphics.RectF
 import android.util.Log
 import androidx.annotation.OptIn
 import androidx.camera.core.*
@@ -9,7 +7,6 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,10 +17,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -37,7 +32,6 @@ import androidx.core.content.ContextCompat
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
-import com.google.mlkit.vision.face.FaceDetector
 import com.google.mlkit.vision.face.FaceDetectorOptions
 import java.io.File
 import java.util.concurrent.Executors
@@ -51,22 +45,35 @@ fun EziyFaceCameraDialog(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    var isFaceDetected by remember { mutableStateOf(false) }
-    var statusText by remember { mutableStateOf("Position your face inside the oval ring") }
+    var isFaceValidInOval by remember { mutableStateOf(false) }
+    var statusText by remember { mutableStateOf("Position face inside the oval ring") }
     var isCapturing by remember { mutableStateOf(false) }
 
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     var imageCapture: ImageCapture? by remember { mutableStateOf(null) }
 
-    // ML Kit Face Detector
+    var validFaceFrameCount by remember { mutableIntStateOf(0) }
+
+    // ML Kit Face Detector with accurate tracking
     val faceDetector = remember {
         val options = FaceDetectorOptions.Builder()
-            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_FAST)
-            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_NONE)
-            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_NONE)
+            .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
             .setMinFaceSize(0.35f)
             .build()
         FaceDetection.getClient(options)
+    }
+
+    fun isFaceInCenterOval(face: Face, imgWidth: Int, imgHeight: Int): Boolean {
+        val bounds = face.boundingBox
+        val centerX = bounds.centerX().toFloat() / imgWidth.toFloat()
+        val centerY = bounds.centerY().toFloat() / imgHeight.toFloat()
+        val widthRatio = bounds.width().toFloat() / imgWidth.toFloat()
+
+        // Face must be centered in frame (35% - 65%) and occupy at least 32% of width
+        val isCentered = centerX in 0.30f..0.70f && centerY in 0.20f..0.80f
+        val isSizedWell = widthRatio >= 0.30f
+
+        return isCentered && isSizedWell
     }
 
     fun takePicture() {
@@ -89,7 +96,7 @@ fun EziyFaceCameraDialog(
                 override fun onError(exception: ImageCaptureException) {
                     Log.e("FaceCamera", "Capture failed: ${exception.message}", exception)
                     isCapturing = false
-                    statusText = "Camera capture error. Try manually."
+                    statusText = "Capture failed. Use manual button."
                 }
             }
         )
@@ -128,18 +135,37 @@ fun EziyFaceCameraDialog(
                         imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
                             val mediaImage = imageProxy.image
                             if (mediaImage != null && !isCapturing) {
-                                val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
+                                val rotation = imageProxy.imageInfo.rotationDegrees
+                                val image = InputImage.fromMediaImage(mediaImage, rotation)
+
+                                // Calculate dimensions accounting for rotation
+                                val imgW = if (rotation == 90 || rotation == 270) mediaImage.height else mediaImage.width
+                                val imgH = if (rotation == 90 || rotation == 270) mediaImage.width else mediaImage.height
+
                                 faceDetector.process(image)
                                     .addOnSuccessListener { faces ->
-                                        val detected = faces.isNotEmpty()
-                                        if (detected != isFaceDetected) {
-                                            isFaceDetected = detected
-                                            statusText = if (detected) "Face Detected! Auto-capturing..." else "Position your face inside the oval ring"
+                                        val validFace = faces.firstOrNull { face ->
+                                            isFaceInCenterOval(face, imgW, imgH)
                                         }
 
-                                        if (detected && !isCapturing) {
-                                            takePicture()
+                                        if (validFace != null) {
+                                            validFaceFrameCount++
+                                            isFaceValidInOval = true
+                                            statusText = "Face Detected! Hold still..."
+
+                                            // Require 4 consecutive centered face frames before triggering auto-capture
+                                            if (validFaceFrameCount >= 4 && !isCapturing) {
+                                                takePicture()
+                                            }
+                                        } else {
+                                            validFaceFrameCount = 0
+                                            isFaceValidInOval = false
+                                            statusText = if (faces.isNotEmpty()) "Move face inside the green oval" else "Position face inside the oval ring"
                                         }
+                                    }
+                                    .addOnFailureListener {
+                                        validFaceFrameCount = 0
+                                        isFaceValidInOval = false
                                     }
                                     .addOnCompleteListener {
                                         imageProxy.close()
@@ -189,8 +215,8 @@ fun EziyFaceCameraDialog(
 
                 drawPath(outerPath, color = Color.Black.copy(alpha = 0.65f))
 
-                // Oval Ring Stroke
-                val ringColor = if (isFaceDetected) Color(0xFF22C55E) else Color(0xFFF97316)
+                // Oval Ring Stroke (Green when valid face centered, Orange when not)
+                val ringColor = if (isFaceValidInOval) Color(0xFF22C55E) else Color(0xFFF97316)
                 drawOval(
                     color = ringColor,
                     topLeft = androidx.compose.ui.geometry.Offset(left, top),
@@ -209,8 +235,7 @@ fun EziyFaceCameraDialog(
             ) {
                 IconButton(
                     onClick = onDismiss,
-                    modifier = Modifier
-                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                    modifier = Modifier.background(Color.Black.copy(alpha = 0.5f), CircleShape)
                 ) {
                     Icon(Icons.Default.Close, contentDescription = "Close", tint = Color.White)
                 }
@@ -235,7 +260,7 @@ fun EziyFaceCameraDialog(
             ) {
                 Surface(
                     shape = RoundedCornerShape(16.dp),
-                    color = if (isFaceDetected) Color(0xFF166534) else Color(0xFF1E293B),
+                    color = if (isFaceValidInOval) Color(0xFF166534) else Color(0xFF1E293B),
                     contentColor = Color.White
                 ) {
                     Text(

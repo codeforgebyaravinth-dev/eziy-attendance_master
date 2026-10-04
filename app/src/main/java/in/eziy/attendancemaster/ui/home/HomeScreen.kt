@@ -1,8 +1,6 @@
 package `in`.eziy.attendancemaster.ui.home
 
 import android.widget.Toast
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -25,12 +23,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
+import `in`.eziy.attendancemaster.ui.components.EziyFaceCameraDialog
 import `in`.eziy.attendancemaster.ui.components.EziyHeader
 import `in`.eziy.attendancemaster.ui.theme.EziyGreen
 import `in`.eziy.attendancemaster.ui.theme.EziyNavy
 import `in`.eziy.attendancemaster.ui.theme.EziyRed
-import java.io.File
 
 @Composable
 fun HomeScreen(
@@ -39,24 +36,23 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var photoFile by remember { mutableStateOf<File?>(null) }
-
-    val cameraLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicture()
-    ) { success ->
-        if (success && photoFile != null) {
-            viewModel.onPhotoCaptured(photoFile!!)
-        }
-    }
+    var showFaceCamera by remember { mutableStateOf(false) }
 
     LaunchedEffect(state.shouldTriggerCamera) {
         if (state.shouldTriggerCamera) {
-            val file = File(context.cacheDir, "attendance_${System.currentTimeMillis()}.jpg")
-            photoFile = file
-            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
-            cameraLauncher.launch(uri)
+            showFaceCamera = true
             viewModel.resetCameraTrigger()
         }
+    }
+
+    if (showFaceCamera) {
+        EziyFaceCameraDialog(
+            onDismiss = { showFaceCamera = false },
+            onPhotoCaptured = { file ->
+                showFaceCamera = false
+                viewModel.onPhotoCaptured(file)
+            }
+        )
     }
 
     LaunchedEffect(state.toastMessage) {
@@ -238,7 +234,7 @@ fun HomeScreen(
                 }
             }
         } else {
-            val buttonText = if (state.isCheckedIn) "CLOCK OUT (FACE + GPS)" else "CLOCK IN (FACE + GPS)"
+            val buttonText = if (state.isCheckedIn) "CLOCK OUT (LIVE FACE + GPS)" else "CLOCK IN (LIVE FACE + GPS)"
             val buttonColor = if (state.isCheckedIn) EziyRed else EziyNavy
 
             Button(

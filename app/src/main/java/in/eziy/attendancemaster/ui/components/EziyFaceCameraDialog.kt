@@ -36,6 +36,7 @@ import com.google.mlkit.vision.face.FaceDetectorOptions
 import com.google.mlkit.vision.face.FaceLandmark
 import java.io.File
 import java.util.concurrent.Executors
+import kotlin.math.abs
 
 @OptIn(ExperimentalGetImage::class)
 @Composable
@@ -73,30 +74,35 @@ fun EziyFaceCameraDialog(
         val centerY = bounds.centerY().toFloat() / imgHeight.toFloat()
         val widthRatio = bounds.width().toFloat() / imgWidth.toFloat()
 
-        val isCentered = centerX in 0.30f..0.70f && centerY in 0.20f..0.80f
-        val isSizedWell = widthRatio >= 0.30f
+        val isCentered = centerX in 0.32f..0.68f && centerY in 0.22f..0.78f
+        val isSizedWell = widthRatio >= 0.32f
         if (!isCentered || !isSizedWell) return false
 
         // 2. Head Pose Check (must face straight ahead)
         val rotY = face.headEulerAngleY // Turn left/right
         val rotZ = face.headEulerAngleZ // Tilt
-        if (rotY !in -20f..20f || rotZ !in -18f..18f) return false
+        if (rotY !in -15f..15f || rotZ !in -12f..12f) return false
 
-        // 3. Eye Openness Classification
+        // 3. Eye Openness Classification (MUST BE NON-NULL and >= 0.50f)
         val leftEyeOpen = face.leftEyeOpenProbability
         val rightEyeOpen = face.rightEyeOpenProbability
-        if (leftEyeOpen != null && leftEyeOpen < 0.40f) return false
-        if (rightEyeOpen != null && rightEyeOpen < 0.40f) return false
+        if (leftEyeOpen == null || leftEyeOpen < 0.50f) return false
+        if (rightEyeOpen == null || rightEyeOpen < 0.50f) return false
 
-        // 4. Facial Landmarks Verification (Nose + Eyes + Mouth must be detected)
-        val hasLeftEye = face.getLandmark(FaceLandmark.LEFT_EYE) != null
-        val hasRightEye = face.getLandmark(FaceLandmark.RIGHT_EYE) != null
-        val hasNose = face.getLandmark(FaceLandmark.NOSE_BASE) != null
-        val hasMouth = face.getLandmark(FaceLandmark.MOUTH_BOTTOM) != null ||
-                       face.getLandmark(FaceLandmark.MOUTH_LEFT) != null ||
-                       face.getLandmark(FaceLandmark.MOUTH_RIGHT) != null
+        // 4. Facial Geometry Check (Eyes Above Nose, Nose Above Mouth)
+        val leftEye = face.getLandmark(FaceLandmark.LEFT_EYE)?.position ?: return false
+        val rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE)?.position ?: return false
+        val nose = face.getLandmark(FaceLandmark.NOSE_BASE)?.position ?: return false
+        val mouth = face.getLandmark(FaceLandmark.MOUTH_BOTTOM)?.position
+            ?: face.getLandmark(FaceLandmark.MOUTH_LEFT)?.position
+            ?: face.getLandmark(FaceLandmark.MOUTH_RIGHT)?.position ?: return false
 
-        return hasLeftEye && hasRightEye && hasNose && hasMouth
+        // Vertical Y order check: Eyes must be above nose, nose above mouth
+        val eyesAboveNose = leftEye.y < nose.y && rightEye.y < nose.y
+        val noseAboveMouth = nose.y < mouth.y
+        val eyeDistance = abs(rightEye.x - leftEye.x)
+
+        return eyesAboveNose && noseAboveMouth && eyeDistance >= (bounds.width() * 0.20f)
     }
 
     fun takePicture() {
@@ -183,7 +189,7 @@ fun EziyFaceCameraDialog(
                                         } else {
                                             validFaceFrameCount = 0
                                             isFaceValidInOval = false
-                                            statusText = if (faces.isNotEmpty()) "Face camera directly with eyes open" else "Position face straight ahead inside oval"
+                                            statusText = if (faces.isNotEmpty()) "Show full face with eyes open" else "Position face straight ahead inside oval"
                                         }
                                     }
                                     .addOnFailureListener {

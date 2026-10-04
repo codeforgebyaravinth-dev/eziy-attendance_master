@@ -33,6 +33,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.face.FaceLandmark
 import java.io.File
 import java.util.concurrent.Executors
 
@@ -46,7 +47,7 @@ fun EziyFaceCameraDialog(
     val lifecycleOwner = LocalLifecycleOwner.current
 
     var isFaceValidInOval by remember { mutableStateOf(false) }
-    var statusText by remember { mutableStateOf("Position face inside the oval ring") }
+    var statusText by remember { mutableStateOf("Position face straight ahead with eyes open") }
     var isCapturing by remember { mutableStateOf(false) }
 
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
@@ -54,32 +55,54 @@ fun EziyFaceCameraDialog(
 
     var validFaceFrameCount by remember { mutableIntStateOf(0) }
 
-    // ML Kit Face Detector with accurate tracking
+    // ML Kit Face Detector with Landmarks & Eye Openness Classification
     val faceDetector = remember {
         val options = FaceDetectorOptions.Builder()
             .setPerformanceMode(FaceDetectorOptions.PERFORMANCE_MODE_ACCURATE)
+            .setLandmarkMode(FaceDetectorOptions.LANDMARK_MODE_ALL)
+            .setClassificationMode(FaceDetectorOptions.CLASSIFICATION_MODE_ALL)
             .setMinFaceSize(0.35f)
             .build()
         FaceDetection.getClient(options)
     }
 
-    fun isFaceInCenterOval(face: Face, imgWidth: Int, imgHeight: Int): Boolean {
+    fun isFullFaceValid(face: Face, imgWidth: Int, imgHeight: Int): Boolean {
+        // 1. Center & Size Check
         val bounds = face.boundingBox
         val centerX = bounds.centerX().toFloat() / imgWidth.toFloat()
         val centerY = bounds.centerY().toFloat() / imgHeight.toFloat()
         val widthRatio = bounds.width().toFloat() / imgWidth.toFloat()
 
-        // Face must be centered in frame (35% - 65%) and occupy at least 32% of width
         val isCentered = centerX in 0.30f..0.70f && centerY in 0.20f..0.80f
         val isSizedWell = widthRatio >= 0.30f
+        if (!isCentered || !isSizedWell) return false
 
-        return isCentered && isSizedWell
+        // 2. Head Pose Check (must face straight ahead)
+        val rotY = face.headEulerAngleY // Turn left/right
+        val rotZ = face.headEulerAngleZ // Tilt
+        if (rotY !in -20f..20f || rotZ !in -18f..18f) return false
+
+        // 3. Eye Openness Classification
+        val leftEyeOpen = face.leftEyeOpenProbability
+        val rightEyeOpen = face.rightEyeOpenProbability
+        if (leftEyeOpen != null && leftEyeOpen < 0.40f) return false
+        if (rightEyeOpen != null && rightEyeOpen < 0.40f) return false
+
+        // 4. Facial Landmarks Verification (Nose + Eyes + Mouth must be detected)
+        val hasLeftEye = face.getLandmark(FaceLandmark.LEFT_EYE) != null
+        val hasRightEye = face.getLandmark(FaceLandmark.RIGHT_EYE) != null
+        val hasNose = face.getLandmark(FaceLandmark.NOSE_BASE) != null
+        val hasMouth = face.getLandmark(FaceLandmark.MOUTH_BOTTOM) != null ||
+                       face.getLandmark(FaceLandmark.MOUTH_LEFT) != null ||
+                       face.getLandmark(FaceLandmark.MOUTH_RIGHT) != null
+
+        return hasLeftEye && hasRightEye && hasNose && hasMouth
     }
 
     fun takePicture() {
         if (isCapturing) return
         isCapturing = true
-        statusText = "Face Validated! Capturing..."
+        statusText = "Full Face Verified! Capturing..."
 
         val file = File(context.cacheDir, "face_${System.currentTimeMillis()}.jpg")
         val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
@@ -145,22 +168,22 @@ fun EziyFaceCameraDialog(
                                 faceDetector.process(image)
                                     .addOnSuccessListener { faces ->
                                         val validFace = faces.firstOrNull { face ->
-                                            isFaceInCenterOval(face, imgW, imgH)
+                                            isFullFaceValid(face, imgW, imgH)
                                         }
 
                                         if (validFace != null) {
                                             validFaceFrameCount++
                                             isFaceValidInOval = true
-                                            statusText = "Face Detected! Hold still..."
+                                            statusText = "Full Face Verified! Hold still..."
 
-                                            // Require 4 consecutive centered face frames before triggering auto-capture
-                                            if (validFaceFrameCount >= 4 && !isCapturing) {
+                                            // Require 5 consecutive fully-valid face frames before triggering auto-capture
+                                            if (validFaceFrameCount >= 5 && !isCapturing) {
                                                 takePicture()
                                             }
                                         } else {
                                             validFaceFrameCount = 0
                                             isFaceValidInOval = false
-                                            statusText = if (faces.isNotEmpty()) "Move face inside the green oval" else "Position face inside the oval ring"
+                                            statusText = if (faces.isNotEmpty()) "Face camera directly with eyes open" else "Position face straight ahead inside oval"
                                         }
                                     }
                                     .addOnFailureListener {

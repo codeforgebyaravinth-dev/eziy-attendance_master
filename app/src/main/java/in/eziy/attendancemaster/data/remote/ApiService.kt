@@ -13,7 +13,6 @@ interface ApiService {
         @Field("pin") pin: String
     ): Response<LoginResponse>
 
-    @FormUrlEncoded
     @POST("face_attendance/api/status")
     suspend fun getStatus(
         @Header("Authorization") bearerToken: String

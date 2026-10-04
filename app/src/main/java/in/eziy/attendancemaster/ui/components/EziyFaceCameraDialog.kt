@@ -1,6 +1,7 @@
 package `in`.eziy.attendancemaster.ui.components
 
 import android.util.Log
+import android.util.Size
 import androidx.annotation.OptIn
 import androidx.camera.core.*
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -108,7 +109,7 @@ fun EziyFaceCameraDialog(
     fun takePicture() {
         if (isCapturing) return
         isCapturing = true
-        statusText = "Full Face Verified! Capturing..."
+        statusText = "Full Face Verified! Capturing HD photo..."
 
         val file = File(context.cacheDir, "face_${System.currentTimeMillis()}.jpg")
         val outputOptions = ImageCapture.OutputFileOptions.Builder(file).build()
@@ -153,8 +154,10 @@ fun EziyFaceCameraDialog(
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
 
+                        // Maximize quality for crisp, clear face photos for Odoo face matching
                         imageCapture = ImageCapture.Builder()
-                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                            .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                            .setTargetResolution(Size(1280, 960))
                             .build()
 
                         val imageAnalysis = ImageAnalysis.Builder()
@@ -182,8 +185,8 @@ fun EziyFaceCameraDialog(
                                             isFaceValidInOval = true
                                             statusText = "Full Face Verified! Hold still..."
 
-                                            // Require 5 consecutive fully-valid face frames before triggering auto-capture
-                                            if (validFaceFrameCount >= 5 && !isCapturing) {
+                                            // Require 6 consecutive fully-valid face frames before triggering HD auto-capture
+                                            if (validFaceFrameCount >= 6 && !isCapturing) {
                                                 takePicture()
                                             }
                                         } else {

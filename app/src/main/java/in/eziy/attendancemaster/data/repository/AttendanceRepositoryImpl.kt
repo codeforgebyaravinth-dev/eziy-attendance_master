@@ -6,6 +6,8 @@ import `in`.eziy.attendancemaster.data.remote.dto.*
 import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import org.json.JSONObject
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.text.SimpleDateFormat
@@ -34,6 +36,18 @@ class AttendanceRepositoryImpl(
             cleaned = cleaned.substring(0, cleaned.length - "/face_attendance".length)
         }
         return cleaned.trimEnd('/') + "/"
+    }
+
+    private fun <T> parseOdooErrorMessage(response: Response<T>): String? {
+        return try {
+            val errorJson = response.errorBody()?.string()
+            if (!errorJson.isNullOrBlank()) {
+                val json = JSONObject(errorJson)
+                json.optString("message").ifBlank { null }
+            } else null
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun getApiService(baseUrl: String? = null): ApiService {
@@ -103,10 +117,13 @@ class AttendanceRepositoryImpl(
                         pinCode = pin,
                         authToken = body.token
                     )
+                    Result.success(body)
+                } else {
+                    Result.failure(Exception(body.message ?: "Login failed"))
                 }
-                Result.success(body)
             } else {
-                Result.failure(Exception(body?.message ?: "Authentication failed (${response.code()})"))
+                val errorMsg = parseOdooErrorMessage(response) ?: "Authentication failed (${response.code()})"
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -135,7 +152,8 @@ class AttendanceRepositoryImpl(
             if (response.isSuccessful && body != null) {
                 Result.success(body)
             } else {
-                Result.failure(Exception(body?.message ?: "Could not fetch attendance status"))
+                val errorMsg = parseOdooErrorMessage(response) ?: "Could not fetch status (${response.code()})"
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -171,7 +189,8 @@ class AttendanceRepositoryImpl(
             if (response.isSuccessful && body != null) {
                 Result.success(body)
             } else {
-                Result.failure(Exception(body?.message ?: "Could not fetch attendance history"))
+                val errorMsg = parseOdooErrorMessage(response) ?: "Could not fetch history (${response.code()})"
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -210,9 +229,14 @@ class AttendanceRepositoryImpl(
             )
             val body = response.body()
             if (response.isSuccessful && body != null) {
-                Result.success(body)
+                if (body.success) {
+                    Result.success(body)
+                } else {
+                    Result.failure(Exception(body.message ?: "Attendance failed"))
+                }
             } else {
-                Result.failure(Exception(body?.message ?: "Attendance submission failed"))
+                val errorMsg = parseOdooErrorMessage(response) ?: "Attendance failed (${response.code()})"
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)

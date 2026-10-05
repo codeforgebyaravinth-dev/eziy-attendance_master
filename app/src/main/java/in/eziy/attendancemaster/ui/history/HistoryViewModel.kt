@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import `in`.eziy.attendancemaster.data.remote.dto.AttendanceRecordDto
 import `in`.eziy.attendancemaster.data.repository.AttendanceRepository
+import `in`.eziy.attendancemaster.util.EziyDateTimeUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,8 +32,14 @@ class HistoryViewModel(
         viewModelScope.launch {
             val result = repository.getHistory()
             result.onSuccess { response ->
+                val formattedRecords = response.attendance.map { rec ->
+                    rec.copy(
+                        checkIn = EziyDateTimeUtils.formatUtcToLocal(rec.checkIn),
+                        checkOut = EziyDateTimeUtils.formatUtcToLocal(rec.checkOut)
+                    )
+                }
                 _uiState.value = _uiState.value.copy(
-                    records = response.attendance,
+                    records = formattedRecords,
                     isLoading = false
                 )
             }.onFailure { err ->

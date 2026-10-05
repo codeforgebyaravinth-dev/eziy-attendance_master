@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import `in`.eziy.attendancemaster.data.local.SecurePreferencesManager
 import `in`.eziy.attendancemaster.data.repository.AttendanceRepository
 import `in`.eziy.attendancemaster.location.EziyLocationClient
+import `in`.eziy.attendancemaster.util.EziyDateTimeUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -75,19 +76,22 @@ class HomeViewModel(
             val result = repository.getStatus()
             result.onSuccess { status ->
                 val checkedIn = status.state == "checked_in"
-                val checkInStr = status.lastCheckIn ?: "—"
-                val checkOutStr = if (checkedIn) "In Progress (Active Shift)" else (status.lastCheckOut ?: "—")
-                val text = if (checkedIn) "Since: $checkInStr" else "Last: $checkOutStr"
+                val rawCheckIn = status.lastCheckIn
+                val rawCheckOut = status.lastCheckOut
 
-                // Estimate progress
-                val worked = if (checkedIn) 4.5 else 0.0
+                val checkInLocal = EziyDateTimeUtils.formatUtcToLocal(rawCheckIn)
+                val checkOutLocal = if (checkedIn) "In Progress (Active Shift)" else EziyDateTimeUtils.formatUtcToLocal(rawCheckOut)
+                val text = if (checkedIn) "Since: $checkInLocal" else "Last: $checkOutLocal"
+
+                // Calculate dynamic worked hours elapsed since check-in
+                val worked = if (checkedIn) EziyDateTimeUtils.calculateElapsedHours(rawCheckIn) else 0.0
                 val progress = if (checkedIn) (worked / 8.0).toFloat().coerceIn(0f, 1f) else 0f
 
                 _uiState.value = _uiState.value.copy(
                     isCheckedIn = checkedIn,
                     timeText = text,
-                    lastCheckInTime = checkInStr,
-                    lastCheckOutTime = checkOutStr,
+                    lastCheckInTime = checkInLocal,
+                    lastCheckOutTime = checkOutLocal,
                     todayWorkedHours = worked,
                     shiftProgress = progress,
                     isLoadingStatus = false

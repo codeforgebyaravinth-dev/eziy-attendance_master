@@ -2,8 +2,10 @@ package `in`.eziy.attendancemaster.ui.home
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.location.Location
 import android.util.Base64
+import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import `in`.eziy.attendancemaster.data.local.SecurePreferencesManager
@@ -124,6 +126,28 @@ class HomeViewModel(
         }
     }
 
+    private fun loadCorrectlyOrientedBitmap(filePath: String): Bitmap? {
+        val rawBmp = BitmapFactory.decodeFile(filePath) ?: return null
+        return try {
+            val exif = ExifInterface(filePath)
+            val orientation = exif.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            )
+            val matrix = Matrix()
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            }
+            if (!matrix.isIdentity) {
+                Bitmap.createBitmap(rawBmp, 0, 0, rawBmp.width, rawBmp.height, matrix, true)
+            } else rawBmp
+        } catch (_: Exception) {
+            rawBmp
+        }
+    }
+
     fun onPhotoCaptured(file: File) {
         val loc = pendingLocation
         if (loc == null) {
@@ -135,10 +159,10 @@ class HomeViewModel(
 
         viewModelScope.launch {
             val base64Image = withContext(Dispatchers.IO) {
-                val bmp = BitmapFactory.decodeFile(file.absolutePath) ?: return@withContext null
+                val bmp = loadCorrectlyOrientedBitmap(file.absolutePath) ?: return@withContext null
                 val scaled = Bitmap.createScaledBitmap(bmp, 640, 480, true)
                 val out = ByteArrayOutputStream()
-                scaled.compress(Bitmap.CompressFormat.JPEG, 78, out)
+                scaled.compress(Bitmap.CompressFormat.JPEG, 82, out)
                 "data:image/jpeg;base64," + Base64.encodeToString(out.toByteArray(), Base64.NO_WRAP)
             }
 

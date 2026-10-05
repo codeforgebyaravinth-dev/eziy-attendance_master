@@ -70,6 +70,7 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("com.google.android.material:material:1.12.0")
+    implementation("androidx.exifinterface:exifinterface:1.3.7")
 
     // Compose BOM & Navigation
     val composeBom = platform("androidx.compose:compose-bom:2024.10.01")

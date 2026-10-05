@@ -3,6 +3,7 @@ package `in`.eziy.attendancemaster.service
 import android.app.*
 import android.content.Intent
 import android.os.IBinder
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import `in`.eziy.attendancemaster.data.local.SecurePreferencesManager
 import org.eclipse.paho.client.mqttv3.*
@@ -44,35 +45,44 @@ class EziyMqttService : Service() {
     private fun connectMqtt() {
         val prefs = SecurePreferencesManager(this)
         val badge = prefs.employeeId
-        val pin = prefs.pin
 
-        if (badge.length != 8 || pin.isBlank()) return
+        if (badge.length != 8) return
 
         Thread {
             try {
                 client?.disconnectForcibly()
-                val clientId = "eziy-${badge}-${UUID.randomUUID().toString().take(8)}"
+                val clientId = "eziy-sub-${badge}-${UUID.randomUUID().toString().take(8)}"
                 val mqttClient = MqttClient("tcp://mqtt.eziy.in:1883", clientId, null)
 
+                // Match Odoo backend MQTT broker credentials (atc / ahxpp6467c)
                 val options = MqttConnectOptions().apply {
-                    userName = badge
-                    password = pin.toCharArray()
+                    userName = "atc"
+                    password = "ahxpp6467c".toCharArray()
                     isAutomaticReconnect = true
-                    isCleanSession = false
-                    connectionTimeout = 10
+                    isCleanSession = true
+                    connectionTimeout = 15
                     keepAliveInterval = 30
                 }
 
                 mqttClient.setCallback(object : MqttCallbackExtended {
                     override fun connectComplete(reconnect: Boolean, serverURI: String?) {
-                        try { mqttClient.subscribe(badge, 1) } catch (_: Exception) {}
+                        try {
+                            mqttClient.subscribe(badge, 1)
+                            Log.d("EziyMqtt", "Subscribed to MQTT topic: $badge")
+                        } catch (e: Exception) {
+                            Log.e("EziyMqtt", "MQTT subscription failed: ${e.message}", e)
+                        }
                     }
 
-                    override fun connectionLost(cause: Throwable?) {}
+                    override fun connectionLost(cause: Throwable?) {
+                        Log.w("EziyMqtt", "MQTT Connection lost: ${cause?.message}")
+                    }
+
                     override fun deliveryComplete(token: IMqttDeliveryToken?) {}
 
                     override fun messageArrived(topic: String?, message: MqttMessage?) {
                         val raw = message?.payload?.toString(Charsets.UTF_8) ?: return
+                        Log.d("EziyMqtt", "MQTT Message arrived on $topic: $raw")
                         var title = "Attendance Alert"
                         var text = raw
 
@@ -102,7 +112,10 @@ class EziyMqttService : Service() {
                 mqttClient.connect(options)
                 mqttClient.subscribe(badge, 1)
                 client = mqttClient
-            } catch (_: Exception) {}
+                Log.d("EziyMqtt", "Connected to mqtt.eziy.in for badge: $badge")
+            } catch (e: Exception) {
+                Log.e("EziyMqtt", "MQTT connection failed: ${e.message}", e)
+            }
         }.start()
     }
 

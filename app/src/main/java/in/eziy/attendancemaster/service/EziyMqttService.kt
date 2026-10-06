@@ -5,7 +5,9 @@ import android.content.Intent
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import `in`.eziy.attendancemaster.R
 import `in`.eziy.attendancemaster.data.local.SecurePreferencesManager
+import `in`.eziy.attendancemaster.util.EziyDateTimeUtils
 import org.eclipse.paho.client.mqttv3.*
 import org.json.JSONObject
 import java.util.UUID
@@ -29,7 +31,7 @@ class EziyMqttService : Service() {
         startForeground(
             NOTIFICATION_ID,
             NotificationCompat.Builder(this, channelId)
-                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle("Eziy Attendance Master")
                 .setContentText("Attendance notification listener active")
                 .setOngoing(true)
@@ -91,15 +93,16 @@ class EziyMqttService : Service() {
                             val name = json.optString("employee_name", badge)
                             val status = json.optString("status", "Attendance recorded")
                             val stamp = json.optString("timestamp", "")
+                            val localStamp = EziyDateTimeUtils.formatUtcToLocal(stamp)
                             title = "$name — $status"
-                            text = if (stamp.isBlank()) status else "$status • $stamp"
+                            text = if (localStamp.isBlank() || localStamp == "—") status else "$status • $localStamp"
                         } catch (_: Exception) {}
 
                         val nm = getSystemService(NotificationManager::class.java)
                         nm.notify(
                             (System.currentTimeMillis() % 100000).toInt(),
                             NotificationCompat.Builder(this@EziyMqttService, channelId)
-                                .setSmallIcon(android.R.drawable.ic_dialog_info)
+                                .setSmallIcon(R.drawable.ic_notification)
                                 .setContentTitle(title)
                                 .setContentText(text)
                                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))

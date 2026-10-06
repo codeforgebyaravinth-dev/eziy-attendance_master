@@ -24,26 +24,27 @@ private val LightColorScheme = lightColorScheme(
 )
 
 private val DarkColorScheme = darkColorScheme(
-    primary = EziyCyan,
-    onPrimary = Color.Black,
+    primary = EziyNavy,
+    onPrimary = Color.White,
     primaryContainer = EziyNavy,
     onPrimaryContainer = Color.White,
     secondary = EziyCyan,
     onSecondary = Color.Black,
-    background = SurfaceDark,
-    onBackground = Color.White,
-    surface = CardDark,
-    onSurface = Color.White,
-    surfaceVariant = Color(0xFF1F2937),
-    onSurfaceVariant = Color.White
+    secondaryContainer = EziyCyanLight,
+    background = Color.White,
+    onBackground = Color(0xFF111827),
+    surface = Color.White,
+    onSurface = Color(0xFF111827),
+    surfaceVariant = Color(0xFFF3F4F6),
+    onSurfaceVariant = Color(0xFF1F2937)
 )
 
 @Composable
 fun EziyTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    darkTheme: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val colorScheme = LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

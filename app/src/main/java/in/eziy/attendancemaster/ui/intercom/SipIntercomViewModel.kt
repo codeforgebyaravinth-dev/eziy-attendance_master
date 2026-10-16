@@ -30,6 +30,8 @@ data class SipIntercomUiState(
     val isConnecting: Boolean = false,
     val isCalling: Boolean = false,
     val isCallConnected: Boolean = false,
+    val isIncomingCall: Boolean = false,
+    val incomingCallerAddress: String = "",
     val isVideoCall: Boolean = false,
     val callDurationSeconds: Int = 0,
     val isMuted: Boolean = false,
@@ -73,14 +75,21 @@ class SipIntercomViewModel(
             )
         }
 
-        linphoneManager.onCallStateChanged = { stateStr, _ ->
+        linphoneManager.onCallStateChanged = { stateStr, msg ->
             when (stateStr) {
+                "IncomingReceived", "IncomingEarlyMedia" -> {
+                    _uiState.value = _uiState.value.copy(
+                        isIncomingCall = true,
+                        incomingCallerAddress = msg.ifBlank { "Incoming Intercom Call" }
+                    )
+                }
                 "OutgoingInit", "OutgoingProgress", "OutgoingRinging" -> {
                     _uiState.value = _uiState.value.copy(isCalling = true)
                 }
                 "StreamsRunning", "Connected" -> {
                     _uiState.value = _uiState.value.copy(
                         isCalling = false,
+                        isIncomingCall = false,
                         isCallConnected = true,
                         callDurationSeconds = 0
                     )
@@ -94,6 +103,7 @@ class SipIntercomViewModel(
                     timerJob?.cancel()
                     _uiState.value = _uiState.value.copy(
                         isCalling = false,
+                        isIncomingCall = false,
                         isCallConnected = false,
                         callDurationSeconds = 0,
                         toastMessage = "Call $stateStr"
@@ -101,6 +111,22 @@ class SipIntercomViewModel(
                 }
             }
         }
+    }
+
+    fun answerIncomingCall(isVideo: Boolean = false) {
+        _uiState.value = _uiState.value.copy(
+            isIncomingCall = false,
+            isVideoCall = isVideo,
+            isCallConnected = true,
+            callDurationSeconds = 0
+        )
+        linphoneManager.answerCall(isVideo)
+        startCallTimer()
+    }
+
+    fun declineIncomingCall() {
+        _uiState.value = _uiState.value.copy(isIncomingCall = false)
+        linphoneManager.endCall()
     }
 
     fun setVideoSurfaces(remoteView: Any?, previewView: Any?) {
@@ -207,6 +233,7 @@ class SipIntercomViewModel(
         linphoneManager.endCall()
         _uiState.value = _uiState.value.copy(
             isCalling = false,
+            isIncomingCall = false,
             isCallConnected = false,
             callDurationSeconds = 0
         )

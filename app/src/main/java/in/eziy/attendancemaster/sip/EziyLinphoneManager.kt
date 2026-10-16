@@ -186,6 +186,28 @@ class EziyLinphoneManager(private val context: Context) {
         }
     }
 
+    fun answerCall(isVideo: Boolean = false) {
+        val linphoneCore = core ?: return
+        try {
+            val call = linphoneCore.currentCall
+            if (call != null) {
+                val params = linphoneCore.createCallParams(call)
+                if (params != null) {
+                    val enableVid = isVideo || call.remoteParams?.isVideoEnabled == true
+                    params.isVideoEnabled = enableVid
+                    if (enableVid) {
+                        params.videoDirection = MediaDirection.SendRecv
+                    }
+                    call.acceptWithParams(params)
+                } else {
+                    call.accept()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("EziyLinphone", "Error answering call: ${e.message}", e)
+        }
+    }
+
     fun endCall() {
         try {
             core?.currentCall?.terminate()

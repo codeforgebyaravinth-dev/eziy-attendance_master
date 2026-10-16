@@ -1,5 +1,6 @@
 package `in`.eziy.attendancemaster.ui.intercom
 
+import android.graphics.SurfaceTexture
 import android.view.TextureView
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
@@ -66,6 +67,123 @@ fun SipIntercomScreen(
         }
     }
 
+    // INCOMING CALL OVERLAY DIALOG
+    if (state.isIncomingCall) {
+        Dialog(
+            onDismissRequest = { /* Prevent dismiss */ },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color(0xFF0B132B)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(top = 40.dp)
+                    ) {
+                        Text(
+                            text = "INCOMING INTERCOM CALL",
+                            color = EziyGreen,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.5.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Ringing...",
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 16.sp
+                        )
+                    }
+
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(120.dp)
+                                .clip(CircleShape)
+                                .background(EziyNavy),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhoneInTalk,
+                                contentDescription = "Incoming",
+                                tint = Color.White,
+                                modifier = Modifier.size(56.dp)
+                            )
+                        }
+
+                        Text(
+                            text = state.incomingCallerAddress,
+                            color = Color.White,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 40.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // DECLINE BUTTON
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            FloatingActionButton(
+                                onClick = viewModel::declineIncomingCall,
+                                containerColor = EziyRed,
+                                contentColor = Color.White,
+                                modifier = Modifier.size(68.dp)
+                            ) {
+                                Icon(Icons.Default.CallEnd, contentDescription = "Decline", modifier = Modifier.size(32.dp))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("DECLINE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        // ANSWER VOICE BUTTON
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            FloatingActionButton(
+                                onClick = { viewModel.answerIncomingCall(isVideo = false) },
+                                containerColor = EziyGreen,
+                                contentColor = Color.White,
+                                modifier = Modifier.size(68.dp)
+                            ) {
+                                Icon(Icons.Default.PhoneInTalk, contentDescription = "Answer Voice", modifier = Modifier.size(32.dp))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("ANSWER VOICE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        // ANSWER VIDEO BUTTON
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            FloatingActionButton(
+                                onClick = { viewModel.answerIncomingCall(isVideo = true) },
+                                containerColor = EziyNavy,
+                                contentColor = Color.White,
+                                modifier = Modifier.size(68.dp)
+                            ) {
+                                Icon(Icons.Default.Videocam, contentDescription = "Answer Video", modifier = Modifier.size(32.dp))
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("ANSWER VIDEO", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG WITH PIP SWAPPING & CAMERA SWITCH
     if (state.isCalling || state.isCallConnected) {
         Dialog(
@@ -83,15 +201,18 @@ fun SipIntercomScreen(
                         AndroidView(
                             factory = { ctx ->
                                 TextureView(ctx).apply {
-                                    if (!isSwapped) {
-                                        remoteTextureView = this
-                                    } else {
-                                        localTextureView = this
+                                    surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                                        override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                                            if (!isSwapped) remoteTextureView = this@apply else localTextureView = this@apply
+                                            viewModel.setVideoSurfaces(
+                                                if (!isSwapped) remoteTextureView else localTextureView,
+                                                if (!isSwapped) localTextureView else remoteTextureView
+                                            )
+                                        }
+                                        override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+                                        override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = true
+                                        override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
                                     }
-                                    viewModel.setVideoSurfaces(
-                                        if (!isSwapped) remoteTextureView else localTextureView,
-                                        if (!isSwapped) localTextureView else remoteTextureView
-                                    )
                                 }
                             },
                             modifier = Modifier.fillMaxSize()
@@ -111,15 +232,18 @@ fun SipIntercomScreen(
                                 AndroidView(
                                     factory = { ctx ->
                                         TextureView(ctx).apply {
-                                            if (!isSwapped) {
-                                                localTextureView = this
-                                            } else {
-                                                remoteTextureView = this
+                                            surfaceTextureListener = object : TextureView.SurfaceTextureListener {
+                                                override fun onSurfaceTextureAvailable(surface: SurfaceTexture, width: Int, height: Int) {
+                                                    if (!isSwapped) localTextureView = this@apply else remoteTextureView = this@apply
+                                                    viewModel.setVideoSurfaces(
+                                                        if (!isSwapped) remoteTextureView else localTextureView,
+                                                        if (!isSwapped) localTextureView else remoteTextureView
+                                                    )
+                                                }
+                                                override fun onSurfaceTextureSizeChanged(surface: SurfaceTexture, width: Int, height: Int) {}
+                                                override fun onSurfaceTextureDestroyed(surface: SurfaceTexture): Boolean = true
+                                                override fun onSurfaceTextureUpdated(surface: SurfaceTexture) {}
                                             }
-                                            viewModel.setVideoSurfaces(
-                                                if (!isSwapped) remoteTextureView else localTextureView,
-                                                if (!isSwapped) localTextureView else remoteTextureView
-                                            )
                                         }
                                     },
                                     modifier = Modifier.fillMaxSize()
@@ -378,7 +502,7 @@ fun SipIntercomScreen(
 
     Scaffold(
         floatingActionButton = {
-            if (state.isRegistered && !state.isCallConnected && !state.isCalling) {
+            if (state.isRegistered && !state.isCallConnected && !state.isCalling && !state.isIncomingCall) {
                 ExtendedFloatingActionButton(
                     onClick = { showDialSheet = true },
                     containerColor = EziyNavy,

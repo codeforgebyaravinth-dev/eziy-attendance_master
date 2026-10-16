@@ -10,12 +10,22 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Locale
+
+data class SipCallLog(
+    val title: String,
+    val extension: String,
+    val timeAgo: String,
+    val durationText: String,
+    val isOutgoing: Boolean = true,
+    val isVideo: Boolean = false
+)
 
 data class SipIntercomUiState(
     val sipDomain: String = "sip.linphone.org",
     val sipUsername: String = "",
     val sipPassword: String = "",
-    val targetAddress: String = "sip:reception@sip.linphone.org",
+    val targetAddress: String = "reception",
     val isRegistered: Boolean = false,
     val isConnecting: Boolean = false,
     val isCalling: Boolean = false,
@@ -24,7 +34,8 @@ data class SipIntercomUiState(
     val callDurationSeconds: Int = 0,
     val isMuted: Boolean = false,
     val isSpeakerOn: Boolean = false,
-    val toastMessage: String? = null
+    val toastMessage: String? = null,
+    val callLogs: List<SipCallLog> = emptyList()
 )
 
 class SipIntercomViewModel(
@@ -39,7 +50,18 @@ class SipIntercomViewModel(
 
     init {
         setupLinphoneListeners()
+        loadInitialData()
+    }
+
+    private fun loadInitialData() {
         loadSipCredentials()
+        // Default Call Logs
+        val defaultLogs = listOf(
+            SipCallLog("🏢 Reception Intercom", "reception@sip.linphone.org", "12:42 PM", "02:15 mins", isOutgoing = true),
+            SipCallLog("🚪 Front Gate Intercom", "gate@sip.linphone.org", "Yesterday", "01:05 mins", isOutgoing = false),
+            SipCallLog("🛡️ Security Desk", "security@sip.linphone.org", "03 Oct", "00:45 mins", isOutgoing = true)
+        )
+        _uiState.value = _uiState.value.copy(callLogs = defaultLogs)
     }
 
     private fun setupLinphoneListeners() {
@@ -65,6 +87,10 @@ class SipIntercomViewModel(
                     startCallTimer()
                 }
                 "End", "Released", "Error" -> {
+                    val duration = _uiState.value.callDurationSeconds
+                    if (duration > 0) {
+                        recordCallLog(duration)
+                    }
                     timerJob?.cancel()
                     _uiState.value = _uiState.value.copy(
                         isCalling = false,
@@ -75,6 +101,25 @@ class SipIntercomViewModel(
                 }
             }
         }
+    }
+
+    private fun recordCallLog(durationSec: Int) {
+        val mins = durationSec / 60
+        val secs = durationSec % 60
+        val durationStr = String.format(Locale.US, "%02d:%02d mins", mins, secs)
+        val target = _uiState.value.targetAddress.ifBlank { "Intercom Extension" }
+
+        val newLog = SipCallLog(
+            title = if (target.contains("reception")) "🏢 Reception Intercom" else "📞 $target",
+            extension = target,
+            timeAgo = "Just now",
+            durationText = durationStr,
+            isOutgoing = true,
+            isVideo = _uiState.value.isVideoCall
+        )
+
+        val updated = listOf(newLog) + _uiState.value.callLogs
+        _uiState.value = _uiState.value.copy(callLogs = updated.take(10))
     }
 
     fun loadSipCredentials() {
@@ -126,14 +171,14 @@ class SipIntercomViewModel(
         )
     }
 
-    fun startCall(isVideo: Boolean = false) {
-        val target = _uiState.value.targetAddress.trim()
+    fun startCall(targetExtension: String? = null, isVideo: Boolean = false) {
+        val target = (targetExtension ?: _uiState.value.targetAddress).trim()
         if (target.isBlank()) {
             _uiState.value = _uiState.value.copy(toastMessage = "Please enter target extension")
             return
         }
 
-        _uiState.value = _uiState.value.copy(isCalling = true, isVideoCall = isVideo)
+        _uiState.value = _uiState.value.copy(targetAddress = target, isCalling = true, isVideoCall = isVideo)
         linphoneManager.makeCall(target, isVideo)
     }
 

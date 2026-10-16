@@ -22,6 +22,17 @@ class EziyLinphoneManager(private val context: Context) {
             linphoneCore.isVideoDisplayEnabled = true
             linphoneCore.isSelfViewEnabled = true
 
+            // Enable VP8 and H264 Video Codecs
+            try {
+                linphoneCore.videoPayloadTypes.forEach { payload ->
+                    if (payload.mimeType.equals("VP8", ignoreCase = true) ||
+                        payload.mimeType.equals("H264", ignoreCase = true)
+                    ) {
+                        payload.enable(true)
+                    }
+                }
+            } catch (_: Exception) {}
+
             // Select Front Camera Device
             val cameras = linphoneCore.videoDevicesList
             if (cameras.isNotEmpty()) {
@@ -60,6 +71,18 @@ class EziyLinphoneManager(private val context: Context) {
                 ) {
                     val stateStr = state?.name ?: "Idle"
                     Log.d("EziyLinphone", "SIP Call State: $stateStr ($message)")
+
+                    if (state == Call.State.StreamsRunning || state == Call.State.Connected) {
+                        try {
+                            if (call.currentParams.isVideoEnabled) {
+                                val params = core.createCallParams(call)
+                                params?.isVideoEnabled = true
+                                params?.videoDirection = MediaDirection.SendRecv
+                                call.update(params)
+                            }
+                        } catch (_: Exception) {}
+                    }
+
                     onCallStateChanged?.invoke(stateStr, message)
                 }
             })

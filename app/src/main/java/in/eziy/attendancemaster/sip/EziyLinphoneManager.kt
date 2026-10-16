@@ -17,9 +17,18 @@ class EziyLinphoneManager(private val context: Context) {
             factory.setDebugMode(true, "EziyLinphone")
             val linphoneCore = factory.createCore(null, null, context)
 
-            // Enable Linphone Video Policy for Video Calling
+            // Enable Linphone Video Policy & Self View Preview
             linphoneCore.isVideoCaptureEnabled = true
             linphoneCore.isVideoDisplayEnabled = true
+            linphoneCore.isSelfViewEnabled = true
+
+            // Select Front Camera Device
+            val cameras = linphoneCore.videoDevicesList
+            if (cameras.isNotEmpty()) {
+                val frontCam = cameras.firstOrNull { it.contains("front", ignoreCase = true) } ?: cameras.first()
+                linphoneCore.videoDevice = frontCam
+                Log.d("EziyLinphone", "Selected video device: $frontCam")
+            }
 
             // Configure STUN/ICE NAT Policy for cellular & Wi-Fi NAT traversal
             val natPolicy = linphoneCore.createNatPolicy()
@@ -130,6 +139,9 @@ class EziyLinphoneManager(private val context: Context) {
             val params = linphoneCore.createCallParams(null)
             if (params != null) {
                 params.isVideoEnabled = isVideo
+                if (isVideo) {
+                    params.videoDirection = MediaDirection.SendRecv
+                }
                 linphoneCore.inviteAddressWithParams(address, params)
             }
         } catch (e: Exception) {

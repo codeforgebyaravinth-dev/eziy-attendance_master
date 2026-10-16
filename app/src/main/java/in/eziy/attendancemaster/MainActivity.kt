@@ -32,6 +32,8 @@ import `in`.eziy.attendancemaster.ui.history.HistoryScreen
 import `in`.eziy.attendancemaster.ui.history.HistoryViewModel
 import `in`.eziy.attendancemaster.ui.home.HomeScreen
 import `in`.eziy.attendancemaster.ui.home.HomeViewModel
+import `in`.eziy.attendancemaster.ui.intercom.SipIntercomScreen
+import `in`.eziy.attendancemaster.ui.intercom.SipIntercomViewModel
 import `in`.eziy.attendancemaster.ui.navigation.EziyBottomNavItem
 import `in`.eziy.attendancemaster.ui.settings.SettingsScreen
 import `in`.eziy.attendancemaster.ui.settings.SettingsViewModel
@@ -86,7 +88,8 @@ class MainActivity : ComponentActivity() {
         val permissions = mutableListOf(
             Manifest.permission.CAMERA,
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.RECORD_AUDIO
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
@@ -123,11 +126,12 @@ fun EziyNavApp(
     val setupViewModel = remember { SetupViewModel(repository) }
     val homeViewModel = remember { HomeViewModel(repository, prefs, locationClient) }
     val historyViewModel = remember { HistoryViewModel(repository) }
+    val sipIntercomViewModel = remember { SipIntercomViewModel(prefs) }
     val settingsViewModel = remember { SettingsViewModel(prefs) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in listOf("home", "history", "settings")
+    val showBottomBar = currentRoute in listOf("home", "history", "intercom", "settings")
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -171,6 +175,9 @@ fun EziyNavApp(
                                             if (item.route == "home") {
                                                 homeViewModel.loadUserInfo()
                                                 homeViewModel.refreshStatus()
+                                            }
+                                            if (item.route == "intercom") {
+                                                sipIntercomViewModel.loadSipCredentials()
                                             }
                                             if (item.route == "settings") {
                                                 settingsViewModel.loadSettings()
@@ -230,6 +237,12 @@ fun EziyNavApp(
             composable("history") {
                 HistoryScreen(
                     viewModel = historyViewModel
+                )
+            }
+
+            composable("intercom") {
+                SipIntercomScreen(
+                    viewModel = sipIntercomViewModel
                 )
             }
 

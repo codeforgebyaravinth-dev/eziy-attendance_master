@@ -48,6 +48,20 @@ class SecurePreferencesManager(context: Context) {
         get() = prefs.getString(KEY_TOKEN, "") ?: ""
         set(value) = prefs.edit().putString(KEY_TOKEN, value).apply()
 
+    var sipDomain: String
+        get() = prefs.getString(KEY_SIP_DOMAIN, "sip.linphone.org") ?: "sip.linphone.org"
+        set(value) = prefs.edit().putString(KEY_SIP_DOMAIN, value.trim()).apply()
+
+    var sipUsername: String
+        get() = prefs.getString(KEY_SIP_USERNAME, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SIP_USERNAME, value.trim()).apply()
+
+    var sipPassword: String
+        get() = prefs.getString(KEY_SIP_PASSWORD, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SIP_PASSWORD, value).apply()
+
+    fun isSipRegistered(): Boolean = sipUsername.isNotBlank() && sipDomain.isNotBlank()
+
     fun isLoggedIn(): Boolean = token.isNotBlank() && serverUrl.isNotBlank()
 
     fun saveAuthDetails(
@@ -68,6 +82,22 @@ class SecurePreferencesManager(context: Context) {
             .apply()
     }
 
+    fun saveSipDetails(domain: String, user: String, pass: String) {
+        prefs.edit()
+            .putString(KEY_SIP_DOMAIN, domain.trim())
+            .putString(KEY_SIP_USERNAME, user.trim())
+            .putString(KEY_SIP_PASSWORD, pass)
+            .apply()
+    }
+
+    fun clearSipDetails() {
+        prefs.edit()
+            .remove(KEY_SIP_DOMAIN)
+            .remove(KEY_SIP_USERNAME)
+            .remove(KEY_SIP_PASSWORD)
+            .apply()
+    }
+
     fun clear() {
         prefs.edit().clear().apply()
     }
@@ -80,5 +110,8 @@ class SecurePreferencesManager(context: Context) {
         private const val KEY_EMPLOYEE_ID = "employee_id"
         private const val KEY_PIN = "pin"
         private const val KEY_TOKEN = "token"
+        private const val KEY_SIP_DOMAIN = "sip_domain"
+        private const val KEY_SIP_USERNAME = "sip_username"
+        private const val KEY_SIP_PASSWORD = "sip_password"
     }
 }

@@ -3,6 +3,7 @@ package `in`.eziy.attendancemaster.ui.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -13,9 +14,10 @@ sealed class EziyBottomNavItem(
 ) {
     object Home : EziyBottomNavItem("home", "Home", Icons.Default.Home)
     object History : EziyBottomNavItem("history", "History", Icons.Default.DateRange)
+    object Intercom : EziyBottomNavItem("intercom", "Intercom", Icons.Default.PhoneInTalk)
     object Settings : EziyBottomNavItem("settings", "Settings", Icons.Default.Settings)
 
     companion object {
-        val items = listOf(Home, History, Settings)
+        val items = listOf(Home, History, Intercom, Settings)
     }
 }

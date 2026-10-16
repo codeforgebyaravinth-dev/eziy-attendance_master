@@ -16,11 +16,14 @@ import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CallEnd
+import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -53,6 +56,8 @@ fun SipIntercomScreen(
 
     var remoteTextureView by remember { mutableStateOf<TextureView?>(null) }
     var localTextureView by remember { mutableStateOf<TextureView?>(null) }
+    var isSwapped by remember { mutableStateOf(false) }
+    var isPipVisible by remember { mutableStateOf(true) }
 
     LaunchedEffect(state.toastMessage) {
         state.toastMessage?.let { msg ->
@@ -61,7 +66,7 @@ fun SipIntercomScreen(
         }
     }
 
-    // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG WITH 2-WAY PIP VIDEO
+    // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG WITH PIP SWAPPING & CAMERA SWITCH
     if (state.isCalling || state.isCallConnected) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss during call */ },
@@ -74,32 +79,71 @@ fun SipIntercomScreen(
                 Box(modifier = Modifier.fillMaxSize()) {
                     // Video Rendering Surfaces if Video Call
                     if (state.isVideoCall) {
-                        // Remote Full-Screen Video
+                        // MAIN BACKGROUND VIDEO WINDOW
                         AndroidView(
                             factory = { ctx ->
                                 TextureView(ctx).apply {
-                                    remoteTextureView = this
-                                    viewModel.setVideoSurfaces(remoteTextureView, localTextureView)
+                                    if (!isSwapped) {
+                                        remoteTextureView = this
+                                    } else {
+                                        localTextureView = this
+                                    }
+                                    viewModel.setVideoSurfaces(
+                                        if (!isSwapped) remoteTextureView else localTextureView,
+                                        if (!isSwapped) localTextureView else remoteTextureView
+                                    )
                                 }
                             },
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        // Top-Right Picture-in-Picture Local Self Camera Preview
-                        AndroidView(
-                            factory = { ctx ->
-                                TextureView(ctx).apply {
-                                    localTextureView = this
-                                    viewModel.setVideoSurfaces(remoteTextureView, localTextureView)
+                        // PIP WINDOW IN BOTTOM RIGHT (SWAPPABLE & HIDEABLE)
+                        if (isPipVisible) {
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(bottom = 120.dp, end = 20.dp)
+                                    .size(width = 110.dp, height = 150.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(Color.Black.copy(alpha = 0.6f))
+                                    .clickable { isSwapped = !isSwapped }
+                            ) {
+                                AndroidView(
+                                    factory = { ctx ->
+                                        TextureView(ctx).apply {
+                                            if (!isSwapped) {
+                                                localTextureView = this
+                                            } else {
+                                                remoteTextureView = this
+                                            }
+                                            viewModel.setVideoSurfaces(
+                                                if (!isSwapped) remoteTextureView else localTextureView,
+                                                if (!isSwapped) localTextureView else remoteTextureView
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxSize()
+                                )
+
+                                // Swap Hint & Hide Overlay Controls
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color.Black.copy(alpha = 0.4f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("TAP SWAP", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    IconButton(
+                                        onClick = { isPipVisible = false },
+                                        modifier = Modifier.size(16.dp)
+                                    ) {
+                                        Icon(Icons.Default.VisibilityOff, contentDescription = "Hide", tint = Color.White, modifier = Modifier.size(12.dp))
+                                    }
                                 }
-                            },
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .padding(top = 50.dp, end = 20.dp)
-                                .size(width = 110.dp, height = 150.dp)
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(Color.Black.copy(alpha = 0.5f))
-                        )
+                            }
+                        }
                     }
 
                     // Centered Caller Info & Controls Overlay
@@ -110,35 +154,50 @@ fun SipIntercomScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Top Label
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(top = 30.dp)
+                        // Top Bar Header
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 30.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = if (state.isVideoCall) "EZIY VIDEO INTERCOM" else "EZIY VOICE INTERCOM",
-                                color = EziyGreen,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.2.sp
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            val mins = state.callDurationSeconds / 60
-                            val secs = state.callDurationSeconds % 60
-                            val statusStr = if (state.isCallConnected) {
-                                String.format(Locale.US, "%02d:%02d", mins, secs)
-                            } else {
-                                "Connecting / Dialing..."
+                            Column {
+                                Text(
+                                    text = if (state.isVideoCall) "EZIY VIDEO INTERCOM" else "EZIY VOICE INTERCOM",
+                                    color = EziyGreen,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.2.sp
+                                )
+                                val mins = state.callDurationSeconds / 60
+                                val secs = state.callDurationSeconds % 60
+                                val statusStr = if (state.isCallConnected) {
+                                    String.format(Locale.US, "%02d:%02d", mins, secs)
+                                } else {
+                                    "Connecting / Dialing..."
+                                }
+                                Text(
+                                    text = statusStr,
+                                    color = Color.White.copy(alpha = 0.85f),
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
-                            Text(
-                                text = statusStr,
-                                color = Color.White.copy(alpha = 0.85f),
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+
+                            if (state.isVideoCall && !isPipVisible) {
+                                IconButton(
+                                    onClick = { isPipVisible = true },
+                                    modifier = Modifier
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.2f))
+                                ) {
+                                    Icon(Icons.Default.Visibility, contentDescription = "Show PiP", tint = Color.White)
+                                }
+                            }
                         }
 
-                        // Centered Avatar & Extension Name (Shown if voice call or before video streams)
+                        // Centered Avatar & Extension Name (Shown if voice call or before video connects)
                         if (!state.isVideoCall) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -171,56 +230,80 @@ fun SipIntercomScreen(
                             Spacer(modifier = Modifier.height(1.dp))
                         }
 
-                        // Bottom Action Controls Bar
+                        // Bottom Action Glassmorphism Bar
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(bottom = 30.dp)
+                            modifier = Modifier.padding(bottom = 20.dp)
                         ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(32.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                            Surface(
+                                shape = RoundedCornerShape(24.dp),
+                                color = Color.Black.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
                             ) {
-                                IconButton(
-                                    onClick = viewModel::toggleMute,
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.2f))
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                                        contentDescription = "Mute",
-                                        tint = if (state.isMuted) EziyRed else Color.White,
-                                        modifier = Modifier.size(26.dp)
-                                    )
-                                }
+                                    IconButton(
+                                        onClick = viewModel::toggleMute,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.15f))
+                                    ) {
+                                        Icon(
+                                            imageVector = if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                                            contentDescription = "Mute",
+                                            tint = if (state.isMuted) EziyRed else Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
 
-                                FloatingActionButton(
-                                    onClick = viewModel::hangUp,
-                                    containerColor = EziyRed,
-                                    contentColor = Color.White,
-                                    modifier = Modifier.size(72.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CallEnd,
-                                        contentDescription = "End Call",
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                }
+                                    if (state.isVideoCall) {
+                                        IconButton(
+                                            onClick = viewModel::switchCamera,
+                                            modifier = Modifier
+                                                .size(48.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.White.copy(alpha = 0.15f))
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Cameraswitch,
+                                                contentDescription = "Switch Camera",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(22.dp)
+                                            )
+                                        }
+                                    }
 
-                                IconButton(
-                                    onClick = viewModel::toggleSpeaker,
-                                    modifier = Modifier
-                                        .size(56.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.2f))
-                                ) {
-                                    Icon(
-                                        imageVector = if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                                        contentDescription = "Speaker",
-                                        tint = if (state.isSpeakerOn) EziyGreen else Color.White,
-                                        modifier = Modifier.size(26.dp)
-                                    )
+                                    IconButton(
+                                        onClick = viewModel::toggleSpeaker,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.15f))
+                                    ) {
+                                        Icon(
+                                            imageVector = if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
+                                            contentDescription = "Speaker",
+                                            tint = if (state.isSpeakerOn) EziyGreen else Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+
+                                    FloatingActionButton(
+                                        onClick = viewModel::hangUp,
+                                        containerColor = EziyRed,
+                                        contentColor = Color.White,
+                                        modifier = Modifier.size(60.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CallEnd,
+                                            contentDescription = "End Call",
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                    }
                                 }
                             }
                         }

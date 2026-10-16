@@ -22,6 +22,18 @@ class EziyLinphoneManager(private val context: Context) {
             linphoneCore.isVideoDisplayEnabled = true
             linphoneCore.isSelfViewEnabled = true
 
+            // Tune Video Performance (30 FPS, 1500 kbps, 640x480)
+            linphoneCore.preferredFramerate = 30.0f
+            linphoneCore.uploadBandwidth = 1500
+            linphoneCore.downloadBandwidth = 1500
+
+            val vdef = linphoneCore.preferredVideoDefinition
+            if (vdef != null) {
+                vdef.width = 640
+                vdef.height = 480
+                linphoneCore.preferredVideoDefinition = vdef
+            }
+
             // Enable VP8 and H264 Video Codecs
             try {
                 linphoneCore.videoPayloadTypes.forEach { payload ->
@@ -178,6 +190,21 @@ class EziyLinphoneManager(private val context: Context) {
         try {
             core?.currentCall?.terminate()
         } catch (_: Exception) {}
+    }
+
+    fun switchCamera() {
+        try {
+            val linphoneCore = core ?: return
+            val currentDevice = linphoneCore.videoDevice
+            val cameras = linphoneCore.videoDevicesList
+            if (cameras.size > 1) {
+                val nextCam = cameras.firstOrNull { it != currentDevice } ?: cameras.first()
+                linphoneCore.videoDevice = nextCam
+                Log.d("EziyLinphone", "Switched camera device to: $nextCam")
+            }
+        } catch (e: Exception) {
+            Log.e("EziyLinphone", "Error switching camera: ${e.message}", e)
+        }
     }
 
     fun setMicrophoneMuted(muted: Boolean) {

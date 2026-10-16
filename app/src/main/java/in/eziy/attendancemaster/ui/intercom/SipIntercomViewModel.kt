@@ -3,6 +3,7 @@ package `in`.eziy.attendancemaster.ui.intercom
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import `in`.eziy.attendancemaster.data.local.SecurePreferencesManager
+import `in`.eziy.attendancemaster.sip.EziyLinphoneManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,7 @@ data class SipIntercomUiState(
     val isConnecting: Boolean = false,
     val isCalling: Boolean = false,
     val isCallConnected: Boolean = false,
+    val isVideoCall: Boolean = false,
     val callDurationSeconds: Int = 0,
     val isMuted: Boolean = false,
     val isSpeakerOn: Boolean = false,
@@ -26,6 +28,7 @@ data class SipIntercomUiState(
 )
 
 class SipIntercomViewModel(
+    private val linphoneManager: EziyLinphoneManager,
     private val prefs: SecurePreferencesManager
 ) : ViewModel() {
 
@@ -35,21 +38,59 @@ class SipIntercomViewModel(
     private var timerJob: Job? = null
 
     init {
+        setupLinphoneListeners()
         loadSipCredentials()
+    }
+
+    private fun setupLinphoneListeners() {
+        linphoneManager.onRegistrationStateChanged = { isOk, msg ->
+            _uiState.value = _uiState.value.copy(
+                isConnecting = false,
+                isRegistered = isOk,
+                toastMessage = if (isOk) "SIP Online: $msg" else "SIP Offline: $msg"
+            )
+        }
+
+        linphoneManager.onCallStateChanged = { stateStr, _ ->
+            when (stateStr) {
+                "OutgoingInit", "OutgoingProgress", "OutgoingRinging" -> {
+                    _uiState.value = _uiState.value.copy(isCalling = true)
+                }
+                "StreamsRunning", "Connected" -> {
+                    _uiState.value = _uiState.value.copy(
+                        isCalling = false,
+                        isCallConnected = true,
+                        callDurationSeconds = 0
+                    )
+                    startCallTimer()
+                }
+                "End", "Released", "Error" -> {
+                    timerJob?.cancel()
+                    _uiState.value = _uiState.value.copy(
+                        isCalling = false,
+                        isCallConnected = false,
+                        callDurationSeconds = 0,
+                        toastMessage = "Call $stateStr"
+                    )
+                }
+            }
+        }
     }
 
     fun loadSipCredentials() {
         val domain = prefs.sipDomain.ifBlank { "sip.linphone.org" }
         val user = prefs.sipUsername
         val pass = prefs.sipPassword
-        val registered = prefs.isSipRegistered()
 
         _uiState.value = _uiState.value.copy(
             sipDomain = domain,
             sipUsername = user,
-            sipPassword = pass,
-            isRegistered = registered
+            sipPassword = pass
         )
+
+        if (user.isNotBlank()) {
+            connectSip()
+        }
     }
 
     fun onDomainChanged(v: String) { _uiState.value = _uiState.value.copy(sipDomain = v) }
@@ -63,57 +104,37 @@ class SipIntercomViewModel(
         val user = _uiState.value.sipUsername.trim()
         val pass = _uiState.value.sipPassword.trim()
 
-        if (domain.isBlank()) {
-            _uiState.value = _uiState.value.copy(toastMessage = "Please enter SIP Server Domain/IP")
-            return
-        }
-        if (user.isBlank()) {
-            _uiState.value = _uiState.value.copy(toastMessage = "Please enter SIP Extension/Username")
+        if (domain.isBlank() || user.isBlank()) {
+            _uiState.value = _uiState.value.copy(toastMessage = "Please enter Domain & Extension ID")
             return
         }
 
         _uiState.value = _uiState.value.copy(isConnecting = true)
-
-        viewModelScope.launch {
-            delay(1200) // Simulates SIP REGISTER request
-            prefs.saveSipDetails(domain, user, pass)
-            _uiState.value = _uiState.value.copy(
-                isConnecting = false,
-                isRegistered = true,
-                toastMessage = "SIP Online: $user@$domain"
-            )
-        }
+        prefs.saveSipDetails(domain, user, pass)
+        linphoneManager.register(user, domain, pass)
     }
 
     fun disconnectSip() {
+        linphoneManager.unregister()
         prefs.clearSipDetails()
         hangUp()
         _uiState.value = _uiState.value.copy(
             isRegistered = false,
             sipUsername = "",
             sipPassword = "",
-            toastMessage = "SIP Intercom Offline"
+            toastMessage = "SIP Disconnected"
         )
     }
 
-    fun startCall() {
+    fun startCall(isVideo: Boolean = false) {
         val target = _uiState.value.targetAddress.trim()
         if (target.isBlank()) {
-            _uiState.value = _uiState.value.copy(toastMessage = "Please enter target SIP extension")
+            _uiState.value = _uiState.value.copy(toastMessage = "Please enter target extension")
             return
         }
 
-        _uiState.value = _uiState.value.copy(isCalling = true)
-
-        viewModelScope.launch {
-            delay(1800) // Simulates SIP INVITE dialing
-            _uiState.value = _uiState.value.copy(
-                isCalling = false,
-                isCallConnected = true,
-                callDurationSeconds = 0
-            )
-            startCallTimer()
-        }
+        _uiState.value = _uiState.value.copy(isCalling = true, isVideoCall = isVideo)
+        linphoneManager.makeCall(target, isVideo)
     }
 
     private fun startCallTimer() {
@@ -130,19 +151,23 @@ class SipIntercomViewModel(
 
     fun hangUp() {
         timerJob?.cancel()
+        linphoneManager.endCall()
         _uiState.value = _uiState.value.copy(
             isCalling = false,
             isCallConnected = false,
-            callDurationSeconds = 0,
-            toastMessage = "Call Ended"
+            callDurationSeconds = 0
         )
     }
 
     fun toggleMute() {
-        _uiState.value = _uiState.value.copy(isMuted = !_uiState.value.isMuted)
+        val newMute = !_uiState.value.isMuted
+        _uiState.value = _uiState.value.copy(isMuted = newMute)
+        linphoneManager.setMicrophoneMuted(newMute)
     }
 
     fun toggleSpeaker() {
-        _uiState.value = _uiState.value.copy(isSpeakerOn = !_uiState.value.isSpeakerOn)
+        val newSpeaker = !_uiState.value.isSpeakerOn
+        _uiState.value = _uiState.value.copy(isSpeakerOn = newSpeaker)
+        linphoneManager.setSpeakerphoneEnabled(newSpeaker)
     }
 }

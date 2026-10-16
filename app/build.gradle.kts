@@ -105,6 +105,9 @@ dependencies {
     // MQTT
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.5")
 
+    // Linphone Android SDK
+    implementation("org.linphone:linphone-sdk-android:5.3+")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")

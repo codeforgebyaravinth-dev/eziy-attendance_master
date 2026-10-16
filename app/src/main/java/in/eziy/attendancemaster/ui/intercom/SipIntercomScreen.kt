@@ -7,13 +7,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CallEnd
-import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.PhoneInTalk
-import androidx.compose.material.icons.filled.VolumeOff
-import androidx.compose.material.icons.filled.VolumeUp
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +29,7 @@ import `in`.eziy.attendancemaster.ui.components.EziyTextField
 import `in`.eziy.attendancemaster.ui.theme.EziyGreen
 import `in`.eziy.attendancemaster.ui.theme.EziyNavy
 import `in`.eziy.attendancemaster.ui.theme.EziyRed
+import java.util.Locale
 
 @Composable
 fun SipIntercomScreen(
@@ -104,7 +105,7 @@ fun SipIntercomScreen(
                         ) {
                             CircularProgressIndicator(modifier = Modifier.size(24.dp))
                             Spacer(modifier = Modifier.width(12.dp))
-                            Text("Connecting to SIP Server...")
+                            Text("Connecting Linphone SDK...")
                         }
                     } else {
                         EziyButton(
@@ -182,7 +183,7 @@ fun SipIntercomScreen(
                     verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "Dial Extension / Reception",
+                        text = "Dial Extension / Gate Intercom",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
@@ -204,11 +205,36 @@ fun SipIntercomScreen(
                             Text("Dialing ${state.targetAddress}...")
                         }
                     } else if (!state.isCallConnected) {
-                        EziyButton(
-                            text = "CALL RECEPTION / FRONT GATE",
-                            onClick = viewModel::startCall,
-                            containerColor = EziyGreen
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Button(
+                                onClick = { viewModel.startCall(isVideo = false) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = EziyGreen)
+                            ) {
+                                Icon(Icons.Default.PhoneInTalk, contentDescription = "Voice Call", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("VOICE", fontWeight = FontWeight.Bold)
+                            }
+
+                            Button(
+                                onClick = { viewModel.startCall(isVideo = true) },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(50.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(containerColor = EziyNavy)
+                            ) {
+                                Icon(Icons.Default.Videocam, contentDescription = "Video Call", modifier = Modifier.size(18.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("VIDEO", fontWeight = FontWeight.Bold)
+                            }
+                        }
                     }
                 }
             }
@@ -217,7 +243,7 @@ fun SipIntercomScreen(
             if (state.isCallConnected) {
                 val mins = state.callDurationSeconds / 60
                 val secs = state.callDurationSeconds % 60
-                val timerFormatted = String.format("%02d:%02d", mins, secs)
+                val timerFormatted = String.format(Locale.US, "%02d:%02d", mins, secs)
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -231,7 +257,7 @@ fun SipIntercomScreen(
                         verticalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Text(
-                            text = "CONNECTED INTERCOM CALL",
+                            text = if (state.isVideoCall) "CONNECTED VIDEO CALL" else "CONNECTED VOICE CALL",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = EziyGreen
@@ -257,7 +283,7 @@ fun SipIntercomScreen(
 
                             IconButton(onClick = viewModel::toggleSpeaker) {
                                 Icon(
-                                    imageVector = if (state.isSpeakerOn) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                                    imageVector = if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
                                     contentDescription = "Speaker",
                                     tint = if (state.isSpeakerOn) EziyGreen else EziyNavy
                                 )

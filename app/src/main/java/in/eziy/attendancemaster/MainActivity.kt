@@ -28,6 +28,7 @@ import `in`.eziy.attendancemaster.data.local.SecurePreferencesManager
 import `in`.eziy.attendancemaster.data.repository.AttendanceRepositoryImpl
 import `in`.eziy.attendancemaster.location.EziyLocationClient
 import `in`.eziy.attendancemaster.service.EziyMqttService
+import `in`.eziy.attendancemaster.sip.EziyLinphoneManager
 import `in`.eziy.attendancemaster.ui.history.HistoryScreen
 import `in`.eziy.attendancemaster.ui.history.HistoryViewModel
 import `in`.eziy.attendancemaster.ui.home.HomeScreen
@@ -87,9 +88,9 @@ class MainActivity : ComponentActivity() {
     private fun requestNeededPermissions() {
         val permissions = mutableListOf(
             Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO,
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.RECORD_AUDIO
+            Manifest.permission.ACCESS_COARSE_LOCATION
         )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
@@ -123,10 +124,12 @@ fun EziyNavApp(
     val navController = rememberNavController()
     val startDestination = if (prefs.isLoggedIn()) "home" else "setup"
 
+    val context = androidx.compose.ui.platform.LocalContext.current
     val setupViewModel = remember { SetupViewModel(repository) }
     val homeViewModel = remember { HomeViewModel(repository, prefs, locationClient) }
     val historyViewModel = remember { HistoryViewModel(repository) }
-    val sipIntercomViewModel = remember { SipIntercomViewModel(prefs) }
+    val linphoneManager = remember { EziyLinphoneManager(context.applicationContext) }
+    val sipIntercomViewModel = remember { SipIntercomViewModel(linphoneManager, prefs) }
     val settingsViewModel = remember { SettingsViewModel(prefs) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()

@@ -1,10 +1,13 @@
 package `in`.eziy.attendancemaster.ui.intercom
 
+import android.view.TextureView
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -22,11 +25,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import `in`.eziy.attendancemaster.ui.components.EziyButton
 import `in`.eziy.attendancemaster.ui.components.EziyHeader
 import `in`.eziy.attendancemaster.ui.components.EziyTextField
@@ -48,6 +55,153 @@ fun SipIntercomScreen(
         state.toastMessage?.let { msg ->
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             viewModel.clearToast()
+        }
+    }
+
+    // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG
+    if (state.isCalling || state.isCallConnected) {
+        Dialog(
+            onDismissRequest = { /* Prevent dismiss during call */ },
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = Color(0xFF0B132B)
+            ) {
+                Box(modifier = Modifier.fillMaxSize()) {
+                    // Video Rendering Surfaces if Video Call
+                    if (state.isVideoCall) {
+                        AndroidView(
+                            factory = { ctx ->
+                                TextureView(ctx).apply {
+                                    viewModel.setVideoSurfaces(this, null)
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+
+                    // Centered Caller Info & Controls Overlay
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        // Top Label
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(top = 40.dp)
+                        ) {
+                            Text(
+                                text = if (state.isVideoCall) "EZIY VIDEO INTERCOM" else "EZIY VOICE INTERCOM",
+                                color = EziyGreen,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.2.sp
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            val mins = state.callDurationSeconds / 60
+                            val secs = state.callDurationSeconds % 60
+                            val statusStr = if (state.isCallConnected) {
+                                String.format(Locale.US, "%02d:%02d", mins, secs)
+                            } else {
+                                "Connecting / Dialing..."
+                            }
+                            Text(
+                                text = statusStr,
+                                color = Color.White.copy(alpha = 0.8f),
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        // Centered Avatar & Extension Name
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(110.dp)
+                                    .clip(CircleShape)
+                                    .background(EziyNavy),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                val initial = state.targetAddress.take(1).uppercase()
+                                Text(
+                                    text = if (initial.isBlank()) "I" else initial,
+                                    color = Color.White,
+                                    fontSize = 42.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+
+                            Text(
+                                text = state.targetAddress,
+                                color = Color.White,
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Bottom Action Controls Bar
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(bottom = 30.dp)
+                        ) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(32.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                IconButton(
+                                    onClick = viewModel::toggleMute,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.15f))
+                                ) {
+                                    Icon(
+                                        imageVector = if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
+                                        contentDescription = "Mute",
+                                        tint = if (state.isMuted) EziyRed else Color.White,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+
+                                FloatingActionButton(
+                                    onClick = viewModel::hangUp,
+                                    containerColor = EziyRed,
+                                    contentColor = Color.White,
+                                    modifier = Modifier.size(72.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CallEnd,
+                                        contentDescription = "End Call",
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = viewModel::toggleSpeaker,
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.15f))
+                                ) {
+                                    Icon(
+                                        imageVector = if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
+                                        contentDescription = "Speaker",
+                                        tint = if (state.isSpeakerOn) EziyGreen else Color.White,
+                                        modifier = Modifier.size(26.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -116,7 +270,7 @@ fun SipIntercomScreen(
 
     Scaffold(
         floatingActionButton = {
-            if (state.isRegistered && !state.isCallConnected) {
+            if (state.isRegistered && !state.isCallConnected && !state.isCalling) {
                 ExtendedFloatingActionButton(
                     onClick = { showDialSheet = true },
                     containerColor = EziyNavy,
@@ -318,89 +472,6 @@ fun SipIntercomScreen(
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text("Security", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 }
-                            }
-                        }
-                    }
-                }
-
-                // CALL STATUS DIALING CARD
-                if (state.isCalling) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(18.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(20.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                            Spacer(modifier = Modifier.width(14.dp))
-                            Text(
-                                text = "Dialing ${state.targetAddress}...",
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    }
-                }
-
-                // ACTIVE CONNECTED CALL OVERLAY
-                if (state.isCallConnected) {
-                    val mins = state.callDurationSeconds / 60
-                    val secs = state.callDurationSeconds % 60
-                    val timerFormatted = String.format(Locale.US, "%02d:%02d", mins, secs)
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = EziyGreen.copy(alpha = 0.08f)),
-                        border = BorderStroke(1.5.dp, EziyGreen)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(14.dp)
-                        ) {
-                            Text(
-                                text = if (state.isVideoCall) "CONNECTED VIDEO CALL" else "CONNECTED VOICE CALL",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = EziyGreen
-                            )
-
-                            Text(
-                                text = timerFormatted,
-                                fontSize = 32.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(20.dp)
-                            ) {
-                                IconButton(onClick = viewModel::toggleMute) {
-                                    Icon(
-                                        imageVector = if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                                        contentDescription = "Mute",
-                                        tint = if (state.isMuted) EziyRed else EziyNavy
-                                    )
-                                }
-
-                                IconButton(onClick = viewModel::toggleSpeaker) {
-                                    Icon(
-                                        imageVector = if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                                        contentDescription = "Speaker",
-                                        tint = if (state.isSpeakerOn) EziyGreen else EziyNavy
-                                    )
-                                }
-                            }
-
-                            FloatingActionButton(
-                                onClick = viewModel::hangUp,
-                                containerColor = EziyRed,
-                                contentColor = Color.White
-                            ) {
-                                Icon(imageVector = Icons.Default.CallEnd, contentDescription = "End Call")
                             }
                         }
                     }

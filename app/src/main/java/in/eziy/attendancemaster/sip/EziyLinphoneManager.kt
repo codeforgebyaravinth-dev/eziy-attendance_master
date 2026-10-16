@@ -17,6 +17,10 @@ class EziyLinphoneManager(private val context: Context) {
             factory.setDebugMode(true, "EziyLinphone")
             val linphoneCore = factory.createCore(null, null, context)
 
+            // Enable Linphone Video Policy for Video Calling
+            linphoneCore.isVideoCaptureEnabled = true
+            linphoneCore.isVideoDisplayEnabled = true
+
             // Configure STUN/ICE NAT Policy for cellular & Wi-Fi NAT traversal
             val natPolicy = linphoneCore.createNatPolicy()
             if (natPolicy != null) {
@@ -55,6 +59,16 @@ class EziyLinphoneManager(private val context: Context) {
             core = linphoneCore
         } catch (e: Exception) {
             Log.e("EziyLinphone", "Linphone Core initialization failed: ${e.message}", e)
+        }
+    }
+
+    fun setVideoSurfaces(remoteView: Any?, previewView: Any?) {
+        try {
+            val linphoneCore = core ?: return
+            linphoneCore.nativeVideoWindowId = remoteView
+            linphoneCore.nativePreviewWindowId = previewView
+        } catch (e: Exception) {
+            Log.e("EziyLinphone", "Error setting video surfaces: ${e.message}", e)
         }
     }
 
@@ -111,7 +125,7 @@ class EziyLinphoneManager(private val context: Context) {
                 fullAddress = if (fullAddress.contains("@")) "sip:$fullAddress" else "sip:$fullAddress@$domain"
             }
 
-            Log.d("EziyLinphone", "Dialing target SIP URI: $fullAddress")
+            Log.d("EziyLinphone", "Dialing target SIP URI: $fullAddress (Video: $isVideo)")
             val address = linphoneCore.interpretUrl(fullAddress) ?: return
             val params = linphoneCore.createCallParams(null)
             if (params != null) {

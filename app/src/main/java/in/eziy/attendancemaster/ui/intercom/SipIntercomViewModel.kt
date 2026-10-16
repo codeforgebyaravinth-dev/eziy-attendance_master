@@ -103,6 +103,10 @@ class SipIntercomViewModel(
         }
     }
 
+    fun setVideoSurfaces(remoteView: Any?, previewView: Any?) {
+        linphoneManager.setVideoSurfaces(remoteView, previewView)
+    }
+
     private fun recordCallLog(durationSec: Int) {
         val mins = durationSec / 60
         val secs = durationSec % 60

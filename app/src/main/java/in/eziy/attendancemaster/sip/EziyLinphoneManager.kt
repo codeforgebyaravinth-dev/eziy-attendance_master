@@ -16,6 +16,16 @@ class EziyLinphoneManager(private val context: Context) {
         try {
             factory.setDebugMode(true, "EziyLinphone")
             val linphoneCore = factory.createCore(null, null, context)
+
+            // Configure STUN/ICE NAT Policy for cellular & Wi-Fi NAT traversal
+            val natPolicy = linphoneCore.createNatPolicy()
+            if (natPolicy != null) {
+                natPolicy.stunServer = "stun.linphone.org"
+                natPolicy.isStunEnabled = true
+                natPolicy.isIceEnabled = true
+                linphoneCore.natPolicy = natPolicy
+            }
+
             linphoneCore.addListener(object : CoreListenerStub() {
                 override fun onAccountRegistrationStateChanged(
                     core: Core,
@@ -40,6 +50,7 @@ class EziyLinphoneManager(private val context: Context) {
                     onCallStateChanged?.invoke(stateStr, message)
                 }
             })
+
             linphoneCore.start()
             core = linphoneCore
         } catch (e: Exception) {
@@ -50,6 +61,8 @@ class EziyLinphoneManager(private val context: Context) {
     fun register(user: String, domain: String, pass: String) {
         val linphoneCore = core ?: return
         try {
+            unregister()
+
             val authInfo = factory.createAuthInfo(user, null, pass, null, null, domain)
             linphoneCore.addAuthInfo(authInfo)
 
@@ -57,13 +70,16 @@ class EziyLinphoneManager(private val context: Context) {
             val identity = factory.createAddress("sip:$user@$domain") ?: return
             params.identityAddress = identity
 
-            val serverAddr = factory.createAddress("sip:$domain") ?: return
+            // Use TransportType.Tls or Tcp for sip.linphone.org
+            val serverUri = if (domain.contains("linphone.org")) "sip:$domain;transport=tls" else "sip:$domain"
+            val serverAddr = factory.createAddress(serverUri) ?: factory.createAddress("sip:$domain") ?: return
             params.serverAddress = serverAddr
             params.isRegisterEnabled = true
 
             val account = linphoneCore.createAccount(params)
             linphoneCore.addAccount(account)
             linphoneCore.defaultAccount = account
+            Log.d("EziyLinphone", "Registering $user@$domain...")
         } catch (e: Exception) {
             Log.e("EziyLinphone", "Registration error: ${e.message}", e)
             onRegistrationStateChanged?.invoke(false, e.message ?: "Registration error")
@@ -84,10 +100,19 @@ class EziyLinphoneManager(private val context: Context) {
         } catch (_: Exception) {}
     }
 
-    fun makeCall(targetSipAddress: String, isVideo: Boolean = false) {
+    fun makeCall(targetInput: String, isVideo: Boolean = false) {
         val linphoneCore = core ?: return
         try {
-            val address = linphoneCore.interpretUrl(targetSipAddress) ?: return
+            val currentAccount = linphoneCore.defaultAccount
+            val domain = currentAccount?.params?.identityAddress?.domain ?: "sip.linphone.org"
+
+            var fullAddress = targetInput.trim()
+            if (!fullAddress.startsWith("sip:")) {
+                fullAddress = if (fullAddress.contains("@")) "sip:$fullAddress" else "sip:$fullAddress@$domain"
+            }
+
+            Log.d("EziyLinphone", "Dialing target SIP URI: $fullAddress")
+            val address = linphoneCore.interpretUrl(fullAddress) ?: return
             val params = linphoneCore.createCallParams(null)
             if (params != null) {
                 params.isVideoEnabled = isVideo

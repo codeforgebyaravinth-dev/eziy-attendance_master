@@ -30,6 +30,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -67,15 +68,20 @@ fun SipIntercomScreen(
         }
     }
 
-    // INCOMING CALL OVERLAY DIALOG
+    // INCOMING CALL OVERLAY DIALOG WITH GRADIENT GLASSMORPHISM BACKGROUND
     if (state.isIncomingCall) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss */ },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = Color(0xFF0B132B)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A))
+                        )
+                    )
             ) {
                 Column(
                     modifier = Modifier
@@ -88,14 +94,21 @@ fun SipIntercomScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier.padding(top = 40.dp)
                     ) {
-                        Text(
-                            text = "INCOMING INTERCOM CALL",
-                            color = EziyGreen,
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 1.5.sp
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = EziyGreen.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, EziyGreen.copy(alpha = 0.4f))
+                        ) {
+                            Text(
+                                text = "INCOMING INTERCOM CALL",
+                                color = EziyGreen,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = 1.2.sp,
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(10.dp))
                         Text(
                             text = "Ringing...",
                             color = Color.White.copy(alpha = 0.8f),
@@ -125,7 +138,7 @@ fun SipIntercomScreen(
                         Text(
                             text = state.incomingCallerAddress,
                             color = Color.White,
-                            fontSize = 22.sp,
+                            fontSize = 24.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -133,7 +146,7 @@ fun SipIntercomScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 40.dp),
+                            .padding(bottom = 30.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -148,7 +161,7 @@ fun SipIntercomScreen(
                                 Icon(Icons.Default.CallEnd, contentDescription = "Decline", modifier = Modifier.size(32.dp))
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("DECLINE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("DECLINE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         // ANSWER VOICE BUTTON
@@ -162,7 +175,7 @@ fun SipIntercomScreen(
                                 Icon(Icons.Default.PhoneInTalk, contentDescription = "Answer Voice", modifier = Modifier.size(32.dp))
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("ANSWER VOICE", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("VOICE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         // ANSWER VIDEO BUTTON
@@ -176,7 +189,7 @@ fun SipIntercomScreen(
                                 Icon(Icons.Default.Videocam, contentDescription = "Answer Video", modifier = Modifier.size(32.dp))
                             }
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text("ANSWER VIDEO", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("VIDEO", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -184,7 +197,7 @@ fun SipIntercomScreen(
         }
     }
 
-    // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG WITH PIP SWAPPING & CAMERA SWITCH
+    // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG WITH PIP SWAPPING & SIGNAL INDICATOR
     if (state.isCalling || state.isCallConnected) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss during call */ },
@@ -278,7 +291,7 @@ fun SipIntercomScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Top Bar Header
+                        // Top Bar Header with Signal Indicator
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -309,49 +322,76 @@ fun SipIntercomScreen(
                                 )
                             }
 
-                            if (state.isVideoCall && !isPipVisible) {
-                                IconButton(
-                                    onClick = { isPipVisible = true },
-                                    modifier = Modifier
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.2f))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color.Black.copy(alpha = 0.4f),
+                                    border = BorderStroke(1.dp, EziyGreen.copy(alpha = 0.4f))
                                 ) {
-                                    Icon(Icons.Default.Visibility, contentDescription = "Show PiP", tint = Color.White)
+                                    Text(
+                                        text = "📶 HD 30 FPS",
+                                        color = EziyGreen,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+
+                                if (state.isVideoCall && !isPipVisible) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    IconButton(
+                                        onClick = { isPipVisible = true },
+                                        modifier = Modifier
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.2f))
+                                    ) {
+                                        Icon(Icons.Default.Visibility, contentDescription = "Show PiP", tint = Color.White)
+                                    }
                                 }
                             }
                         }
 
-                        // Centered Avatar & Extension Name (Shown if voice call or before video connects)
-                        if (!state.isVideoCall) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                        // Centered Avatar & Caller Information Card
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .clip(CircleShape)
+                                    .background(EziyNavy),
+                                contentAlignment = Alignment.Center
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(110.dp)
-                                        .clip(CircleShape)
-                                        .background(EziyNavy),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    val initial = state.targetAddress.take(1).uppercase()
-                                    Text(
-                                        text = if (initial.isBlank()) "I" else initial,
-                                        color = Color.White,
-                                        fontSize = 42.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                }
-
+                                val initial = state.targetAddress.take(1).uppercase()
                                 Text(
-                                    text = state.targetAddress,
+                                    text = if (initial.isBlank()) "I" else initial,
                                     color = Color.White,
-                                    fontSize = 24.sp,
+                                    fontSize = 38.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-                        } else {
-                            Spacer(modifier = Modifier.height(1.dp))
+
+                            Text(
+                                text = state.targetAddress,
+                                color = Color.White,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+
+                            if (state.isVideoCall) {
+                                Surface(
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = Color.Black.copy(alpha = 0.4f)
+                                ) {
+                                    Text(
+                                        text = "📷 Remote Video Stream Active",
+                                        color = Color.White.copy(alpha = 0.8f),
+                                        fontSize = 11.sp,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
                         }
 
                         // Bottom Action Glassmorphism Bar

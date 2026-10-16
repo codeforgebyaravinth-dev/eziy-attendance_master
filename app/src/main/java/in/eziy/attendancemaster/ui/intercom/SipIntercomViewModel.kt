@@ -71,7 +71,7 @@ class SipIntercomViewModel(
             _uiState.value = _uiState.value.copy(
                 isConnecting = false,
                 isRegistered = isOk,
-                toastMessage = if (isOk) "SIP Online: $msg" else "SIP Offline: $msg"
+                toastMessage = if (!isOk) "SIP Offline: $msg" else null // Silent background registration success
             )
         }
 
@@ -105,8 +105,7 @@ class SipIntercomViewModel(
                         isCalling = false,
                         isIncomingCall = false,
                         isCallConnected = false,
-                        callDurationSeconds = 0,
-                        toastMessage = "Call $stateStr"
+                        callDurationSeconds = 0
                     )
                 }
             }
@@ -158,8 +157,8 @@ class SipIntercomViewModel(
 
     fun loadSipCredentials() {
         val domain = prefs.sipDomain.ifBlank { "sip.linphone.org" }
-        val user = prefs.sipUsername
-        val pass = prefs.sipPassword
+        val user = prefs.sipUsername.ifBlank { prefs.employeeId }
+        val pass = prefs.sipPassword.ifBlank { prefs.pin }
 
         _uiState.value = _uiState.value.copy(
             sipDomain = domain,

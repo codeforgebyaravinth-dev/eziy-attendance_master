@@ -22,6 +22,14 @@ class EziyLinphoneManager(private val context: Context) {
             linphoneCore.isVideoDisplayEnabled = true
             linphoneCore.isSelfViewEnabled = true
 
+            // Configure Instant Video Activation Policy
+            val videoPolicy = linphoneCore.videoActivationPolicy
+            if (videoPolicy != null) {
+                videoPolicy.automaticallyAccept = true
+                videoPolicy.automaticallyInitiate = true
+                linphoneCore.videoActivationPolicy = videoPolicy
+            }
+
             // Tune Video Performance (30 FPS, 1500 kbps, 640x480)
             linphoneCore.preferredFramerate = 30.0f
             linphoneCore.uploadBandwidth = 1500
@@ -109,8 +117,8 @@ class EziyLinphoneManager(private val context: Context) {
     fun setVideoSurfaces(remoteView: Any?, previewView: Any?) {
         try {
             val linphoneCore = core ?: return
-            linphoneCore.nativeVideoWindowId = remoteView
-            linphoneCore.nativePreviewWindowId = previewView
+            if (remoteView != null) linphoneCore.nativeVideoWindowId = remoteView
+            if (previewView != null) linphoneCore.nativePreviewWindowId = previewView
             linphoneCore.isSelfViewEnabled = previewView != null
             linphoneCore.reloadVideoDevices()
         } catch (e: Exception) {

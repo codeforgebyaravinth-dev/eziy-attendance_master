@@ -99,6 +99,8 @@ class EziyLinphoneManager(private val context: Context) {
             val linphoneCore = core ?: return
             linphoneCore.nativeVideoWindowId = remoteView
             linphoneCore.nativePreviewWindowId = previewView
+            linphoneCore.isSelfViewEnabled = previewView != null
+            linphoneCore.reloadVideoDevices()
         } catch (e: Exception) {
             Log.e("EziyLinphone", "Error setting video surfaces: ${e.message}", e)
         }

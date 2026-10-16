@@ -51,6 +51,9 @@ fun SipIntercomScreen(
     val context = LocalContext.current
     var showDialSheet by remember { mutableStateOf(false) }
 
+    var remoteTextureView by remember { mutableStateOf<TextureView?>(null) }
+    var localTextureView by remember { mutableStateOf<TextureView?>(null) }
+
     LaunchedEffect(state.toastMessage) {
         state.toastMessage?.let { msg ->
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
@@ -58,7 +61,7 @@ fun SipIntercomScreen(
         }
     }
 
-    // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG
+    // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG WITH 2-WAY PIP VIDEO
     if (state.isCalling || state.isCallConnected) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss during call */ },
@@ -71,13 +74,31 @@ fun SipIntercomScreen(
                 Box(modifier = Modifier.fillMaxSize()) {
                     // Video Rendering Surfaces if Video Call
                     if (state.isVideoCall) {
+                        // Remote Full-Screen Video
                         AndroidView(
                             factory = { ctx ->
                                 TextureView(ctx).apply {
-                                    viewModel.setVideoSurfaces(this, null)
+                                    remoteTextureView = this
+                                    viewModel.setVideoSurfaces(remoteTextureView, localTextureView)
                                 }
                             },
                             modifier = Modifier.fillMaxSize()
+                        )
+
+                        // Top-Right Picture-in-Picture Local Self Camera Preview
+                        AndroidView(
+                            factory = { ctx ->
+                                TextureView(ctx).apply {
+                                    localTextureView = this
+                                    viewModel.setVideoSurfaces(remoteTextureView, localTextureView)
+                                }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(top = 50.dp, end = 20.dp)
+                                .size(width = 110.dp, height = 150.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(Color.Black.copy(alpha = 0.5f))
                         )
                     }
 
@@ -92,7 +113,7 @@ fun SipIntercomScreen(
                         // Top Label
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(top = 40.dp)
+                            modifier = Modifier.padding(top = 30.dp)
                         ) {
                             Text(
                                 text = if (state.isVideoCall) "EZIY VIDEO INTERCOM" else "EZIY VOICE INTERCOM",
@@ -101,7 +122,7 @@ fun SipIntercomScreen(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 1.2.sp
                             )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(6.dp))
                             val mins = state.callDurationSeconds / 60
                             val secs = state.callDurationSeconds % 60
                             val statusStr = if (state.isCallConnected) {
@@ -111,39 +132,43 @@ fun SipIntercomScreen(
                             }
                             Text(
                                 text = statusStr,
-                                color = Color.White.copy(alpha = 0.8f),
+                                color = Color.White.copy(alpha = 0.85f),
                                 fontSize = 18.sp,
                                 fontWeight = FontWeight.Medium
                             )
                         }
 
-                        // Centered Avatar & Extension Name
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(110.dp)
-                                    .clip(CircleShape)
-                                    .background(EziyNavy),
-                                contentAlignment = Alignment.Center
+                        // Centered Avatar & Extension Name (Shown if voice call or before video streams)
+                        if (!state.isVideoCall) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
                             ) {
-                                val initial = state.targetAddress.take(1).uppercase()
+                                Box(
+                                    modifier = Modifier
+                                        .size(110.dp)
+                                        .clip(CircleShape)
+                                        .background(EziyNavy),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    val initial = state.targetAddress.take(1).uppercase()
+                                    Text(
+                                        text = if (initial.isBlank()) "I" else initial,
+                                        color = Color.White,
+                                        fontSize = 42.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+
                                 Text(
-                                    text = if (initial.isBlank()) "I" else initial,
+                                    text = state.targetAddress,
                                     color = Color.White,
-                                    fontSize = 42.sp,
+                                    fontSize = 24.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-
-                            Text(
-                                text = state.targetAddress,
-                                color = Color.White,
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        } else {
+                            Spacer(modifier = Modifier.height(1.dp))
                         }
 
                         // Bottom Action Controls Bar
@@ -160,7 +185,7 @@ fun SipIntercomScreen(
                                     modifier = Modifier
                                         .size(56.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.15f))
+                                        .background(Color.White.copy(alpha = 0.2f))
                                 ) {
                                     Icon(
                                         imageVector = if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
@@ -188,7 +213,7 @@ fun SipIntercomScreen(
                                     modifier = Modifier
                                         .size(56.dp)
                                         .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.15f))
+                                        .background(Color.White.copy(alpha = 0.2f))
                                 ) {
                                     Icon(
                                         imageVector = if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,

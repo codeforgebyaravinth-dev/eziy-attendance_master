@@ -92,7 +92,11 @@ class EziyLinphoneManager(private val context: Context) {
                     state: Call.State?,
                     message: String
                 ) {
-                    Log.d("EziyLinphone", "SIP Call State: ${state?.name} ($message)")
+                    val callerAddress = call.remoteAddress?.username?.ifBlank { null }
+                        ?: call.remoteAddress?.asStringUriOnly()
+                        ?: message
+
+                    Log.d("EziyLinphone", "SIP Call State: ${state?.name} ($callerAddress)")
 
                     if (state == Call.State.IncomingReceived || state == Call.State.IncomingEarlyMedia) {
                         playRingtone()
@@ -100,7 +104,7 @@ class EziyLinphoneManager(private val context: Context) {
                         stopRingtone()
                     }
 
-                    onCallStateChanged?.invoke(state, message)
+                    onCallStateChanged?.invoke(state, callerAddress)
                 }
             })
 

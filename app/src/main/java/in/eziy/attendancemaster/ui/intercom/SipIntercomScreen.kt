@@ -540,9 +540,11 @@ fun SipIntercomScreen(
         }
     }
 
+    val isConfigured = state.isRegistered || state.isConnecting || state.sipUsername.isNotBlank()
+
     Scaffold(
         floatingActionButton = {
-            if (state.isRegistered && !state.isCallConnected && !state.isCalling && !state.isIncomingCall) {
+            if (isConfigured && !state.isCallConnected && !state.isCalling && !state.isIncomingCall) {
                 ExtendedFloatingActionButton(
                     onClick = { showDialSheet = true },
                     containerColor = EziyNavy,
@@ -564,8 +566,8 @@ fun SipIntercomScreen(
         ) {
             EziyHeader(titleText = "SIP VoIP Intercom")
 
-            if (!state.isRegistered) {
-                // UNREGISTERED STAGE: SIP LOGIN FORM
+            if (!isConfigured) {
+                // UNREGISTERED STAGE: SIP LOGIN FORM (Shown ONLY if no credentials exist)
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
@@ -606,27 +608,15 @@ fun SipIntercomScreen(
                             isPassword = true
                         )
 
-                        if (state.isConnecting) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Text("Connecting Linphone SDK...")
-                            }
-                        } else {
-                            EziyButton(
-                                text = "CONNECT SIP INTERCOM",
-                                onClick = viewModel::connectSip,
-                                containerColor = EziyNavy
-                            )
-                        }
+                        EziyButton(
+                            text = "CONNECT SIP INTERCOM",
+                            onClick = viewModel::connectSip,
+                            containerColor = EziyNavy
+                        )
                     }
                 }
             } else {
-                // REGISTERED STAGE: SLEEK DASHBOARD
+                // REGISTERED / AUTO-CONNECTING STAGE: SLEEK DASHBOARD
                 // Top Header Pill Status
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -644,15 +634,27 @@ fun SipIntercomScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
-                                color = EziyGreen.copy(alpha = 0.12f)
+                                color = if (state.isRegistered) EziyGreen.copy(alpha = 0.12f) else EziyNavy.copy(alpha = 0.12f)
                             ) {
-                                Text(
-                                    text = "🟢 ONLINE",
-                                    color = EziyGreen,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                )
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    if (state.isConnecting) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(12.dp),
+                                            strokeWidth = 2.dp,
+                                            color = EziyNavy
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                    }
+                                    Text(
+                                        text = if (state.isRegistered) "🟢 ONLINE" else "🔄 AUTO-CONNECTING...",
+                                        color = if (state.isRegistered) EziyGreen else EziyNavy,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(

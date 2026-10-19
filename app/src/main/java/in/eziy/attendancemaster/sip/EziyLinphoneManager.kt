@@ -61,12 +61,11 @@ class EziyLinphoneManager(private val context: Context) {
                 Log.d("EziyLinphone", "Selected video device: $frontCam")
             }
 
-            // Configure STUN/ICE NAT Policy for cellular & Wi-Fi NAT traversal
+            // Configure NAT Policy: Disable blocking STUN/ICE for Flexisip symmetric NAT proxy routing
             val natPolicy = linphoneCore.createNatPolicy()
             if (natPolicy != null) {
-                natPolicy.stunServer = "stun.linphone.org"
-                natPolicy.isStunEnabled = true
-                natPolicy.isIceEnabled = true
+                natPolicy.isStunEnabled = false
+                natPolicy.isIceEnabled = false
                 linphoneCore.natPolicy = natPolicy
             }
 

@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -132,9 +133,12 @@ fun EziyNavApp(
     val sipIntercomViewModel = remember { SipIntercomViewModel(linphoneManager, prefs) }
     val settingsViewModel = remember { SettingsViewModel(prefs) }
 
+    val sipState by sipIntercomViewModel.uiState.collectAsState()
+    val isCallActive = sipState.isCalling || sipState.isCallConnected || sipState.isIncomingCall
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val showBottomBar = currentRoute in listOf("home", "history", "intercom", "settings")
+    val showBottomBar = currentRoute in listOf("home", "history", "intercom", "settings") && !isCallActive
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -212,7 +216,7 @@ fun EziyNavApp(
         NavHost(
             navController = navController,
             startDestination = startDestination,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(if (isCallActive) PaddingValues(0.dp) else paddingValues)
         ) {
             composable("setup") {
                 SetupScreen(
@@ -233,7 +237,7 @@ fun EziyNavApp(
             composable("home") {
                 HomeScreen(
                     viewModel = homeViewModel,
-                    onRequestPermissions = onRequestPermissions
+                    onRequestPermissions = { onRequestPermissions() }
                 )
             }
 

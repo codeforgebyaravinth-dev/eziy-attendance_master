@@ -17,14 +17,17 @@ import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PhoneInTalk
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -499,8 +502,8 @@ fun SipIntercomCallOverlay(
                                 border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     IconButton(onClick = viewModel::toggleMute) {
@@ -512,11 +515,8 @@ fun SipIntercomCallOverlay(
                                     IconButton(onClick = viewModel::switchCamera) {
                                         Icon(Icons.Default.Cameraswitch, contentDescription = "Camera", tint = Color.White)
                                     }
-                                    IconButton(onClick = {}) {
-                                        Icon(Icons.Default.PhoneInTalk, contentDescription = "Talk", tint = Color.White)
-                                    }
-                                    IconButton(onClick = {}) {
-                                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                                    IconButton(onClick = viewModel::toggleSpeaker) {
+                                        Icon(if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff, contentDescription = "Speaker", tint = if (state.isSpeakerOn) EziyGreen else Color.White)
                                     }
                                     FloatingActionButton(
                                         onClick = viewModel::hangUp,

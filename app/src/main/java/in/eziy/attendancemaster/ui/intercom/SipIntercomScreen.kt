@@ -17,14 +17,19 @@ import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.ChatBubbleOutline
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PhoneInTalk
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -64,13 +69,13 @@ fun SipIntercomScreen(
     var isSwapped by remember { mutableStateOf(false) }
     var isPipVisible by remember { mutableStateOf(true) }
 
-    // Pulsing Animation for Samsung-Style Incoming Call UI
+    // Pulsing Radial Aura Animation for Incoming Call
     val infiniteTransition = rememberInfiniteTransition(label = "Pulse")
     val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.9f,
-        targetValue = 1.25f,
+        initialValue = 0.95f,
+        targetValue = 1.22f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1000, easing = FastOutSlowInEasing),
+            animation = tween(1100, easing = FastOutSlowInEasing),
             repeatMode = RepeatMode.Reverse
         ),
         label = "PulseScale"
@@ -83,7 +88,9 @@ fun SipIntercomScreen(
         }
     }
 
-    // SAMSUNG ONEUI ANIMATED INCOMING CALL OVERLAY DIALOG
+    // ─────────────────────────────────────────────────────────────
+    // SCREENSHOT 1: INCOMING CALL SCREEN (DARK RADIAL AURA & DUAL FABS)
+    // ─────────────────────────────────────────────────────────────
     if (state.isIncomingCall) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss */ },
@@ -94,148 +101,238 @@ fun SipIntercomScreen(
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0F172A))
+                            colors = listOf(Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF0A0F1D))
                         )
                     )
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(32.dp),
+                        .padding(horizontal = 24.dp, vertical = 36.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceBetween
                 ) {
+                    // Top Header Pill
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(top = 40.dp)
+                        modifier = Modifier.padding(top = 16.dp)
                     ) {
                         Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = EziyGreen.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, EziyGreen.copy(alpha = 0.4f))
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFF1E293B).copy(alpha = 0.8f),
+                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
                         ) {
-                            Text(
-                                text = "INCOMING INTERCOM CALL",
-                                color = EziyGreen,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 1.2.sp,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                        Text(
-                            text = "Ringing...",
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 16.sp
-                        )
-                    }
-
-                    // Pulsing Avatar Circle
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Box(
-                                modifier = Modifier
-                                    .size(150.dp)
-                                    .scale(pulseScale)
-                                    .clip(CircleShape)
-                                    .background(EziyGreen.copy(alpha = 0.2f))
-                            )
-                            Box(
-                                modifier = Modifier
-                                    .size(110.dp)
-                                    .clip(CircleShape)
-                                    .background(EziyNavy),
-                                contentAlignment = Alignment.Center
+                            Row(
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.PhoneInTalk,
-                                    contentDescription = "Incoming",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(52.dp)
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .clip(CircleShape)
+                                        .background(EziyGreen)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (state.isVideoCall) "INCOMING VIDEO CALL" else "INCOMING AUDIO CALL",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 1.2.sp
                                 )
                             }
                         }
 
+                        Spacer(modifier = Modifier.height(20.dp))
+
+                        // Caller Name & Subtitle
                         Text(
                             text = state.incomingCallerAddress,
                             color = Color.White,
-                            fontSize = 22.sp,
+                            fontSize = 32.sp,
                             fontWeight = FontWeight.Bold
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Intercom Extension • Eziy Enterprise",
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 14.sp
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Badges Row
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.White.copy(alpha = 0.1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text("📶", fontSize = 10.sp)
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("HD VOICE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = Color.White.copy(alpha = 0.1f)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(Icons.Default.Lock, contentDescription = "Security", tint = Color.White, modifier = Modifier.size(12.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("ENCRYPTED", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 30.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly,
-                        verticalAlignment = Alignment.CenterVertically
+                    // Centered Animated Avatar Circle
+                    Box(contentAlignment = Alignment.Center) {
+                        Box(
+                            modifier = Modifier
+                                .size(240.dp)
+                                .scale(pulseScale)
+                                .clip(CircleShape)
+                                .background(
+                                    Brush.radialGradient(
+                                        colors = listOf(Color(0xFF00AEEF).copy(alpha = 0.25f), Color.Transparent)
+                                    )
+                                )
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size(170.dp)
+                                .clip(CircleShape)
+                                .background(EziyNavy),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = state.incomingCallerAddress.take(1).uppercase().ifBlank { "E" },
+                                color = Color.White,
+                                fontSize = 56.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        // Ringing Pill
+                        Surface(
+                            modifier = Modifier.align(Alignment.BottomCenter),
+                            shape = RoundedCornerShape(16.dp),
+                            color = Color.Black.copy(alpha = 0.6f)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("📊", fontSize = 12.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("CALL RINGING...", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+
+                    // Quick Actions & Accept/Decline FABs
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
                     ) {
-                        // DECLINE BUTTON
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            FloatingActionButton(
-                                onClick = viewModel::declineIncomingCall,
-                                containerColor = EziyRed,
-                                contentColor = Color.White,
-                                modifier = Modifier.size(68.dp)
-                            ) {
-                                Icon(Icons.Default.CallEnd, contentDescription = "Decline", modifier = Modifier.size(32.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                IconButton(
+                                    onClick = {},
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.12f))
+                                ) {
+                                    Icon(Icons.Default.Alarm, contentDescription = "Remind", tint = Color.White)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Remind Me", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("DECLINE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                IconButton(
+                                    onClick = {},
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White.copy(alpha = 0.12f))
+                                ) {
+                                    Icon(Icons.Default.ChatBubbleOutline, contentDescription = "Message", tint = Color.White)
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Message", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
+                            }
                         }
 
-                        // ANSWER VOICE BUTTON
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            FloatingActionButton(
-                                onClick = { viewModel.answerIncomingCall(isVideo = false) },
-                                containerColor = EziyGreen,
-                                contentColor = Color.White,
-                                modifier = Modifier.size(68.dp)
-                            ) {
-                                Icon(Icons.Default.PhoneInTalk, contentDescription = "Answer Voice", modifier = Modifier.size(32.dp))
+                        // Decline / Accept Buttons
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                FloatingActionButton(
+                                    onClick = viewModel::declineIncomingCall,
+                                    containerColor = EziyRed,
+                                    contentColor = Color.White,
+                                    modifier = Modifier.size(76.dp),
+                                    shape = CircleShape
+                                ) {
+                                    Icon(Icons.Default.CallEnd, contentDescription = "Decline", modifier = Modifier.size(34.dp))
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Decline", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("VOICE", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                FloatingActionButton(
+                                    onClick = { viewModel.answerIncomingCall(isVideo = state.isVideoCall) },
+                                    containerColor = EziyGreen,
+                                    contentColor = Color.White,
+                                    modifier = Modifier.size(76.dp),
+                                    shape = CircleShape
+                                ) {
+                                    Icon(Icons.Default.PhoneInTalk, contentDescription = "Accept", modifier = Modifier.size(34.dp))
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("Accept", color = EziyGreen, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            }
                         }
 
-                        // ANSWER VIDEO BUTTON
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            FloatingActionButton(
-                                onClick = { viewModel.answerIncomingCall(isVideo = true) },
-                                containerColor = EziyNavy,
-                                contentColor = Color.White,
-                                modifier = Modifier.size(68.dp)
-                            ) {
-                                Icon(Icons.Default.Videocam, contentDescription = "Answer Video", modifier = Modifier.size(32.dp))
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text("VIDEO", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
+                        Text("^ SWIPE UP TO ACCEPT", color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, letterSpacing = 1.sp)
                     }
                 }
             }
         }
     }
 
-    // FULL-SCREEN PROFESSIONAL CALLING OVERLAY DIALOG WITH PIP SWAPPING & SIGNAL INDICATOR
+    // ─────────────────────────────────────────────────────────────
+    // SCREENSHOT 2 & 3: ACTIVE VOICE / VIDEO CALL SCREEN
+    // ─────────────────────────────────────────────────────────────
     if (state.isCalling || state.isCallConnected) {
         Dialog(
-            onDismissRequest = { /* Prevent dismiss during call */ },
+            onDismissRequest = { /* Prevent dismiss */ },
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
-                color = Color(0xFF0B132B)
+                color = Color(0xFF0F172A)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // Video Rendering Surfaces if Video Call
+                    // SCREENSHOT 3: Full-Screen Video Surface
                     if (state.isVideoCall) {
-                        // MAIN BACKGROUND VIDEO WINDOW
                         AndroidView(
                             factory = { ctx ->
                                 TextureView(ctx).apply {
@@ -256,12 +353,12 @@ fun SipIntercomScreen(
                             modifier = Modifier.fillMaxSize()
                         )
 
-                        // PIP WINDOW IN BOTTOM RIGHT (SWAPPABLE & HIDEABLE)
+                        // Top-Right Rounded PiP Box ("🟢 You")
                         if (isPipVisible) {
                             Box(
                                 modifier = Modifier
-                                    .align(Alignment.BottomEnd)
-                                    .padding(bottom = 120.dp, end = 20.dp)
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 60.dp, end = 20.dp)
                                     .size(width = 110.dp, height = 150.dp)
                                     .clip(RoundedCornerShape(16.dp))
                                     .background(Color.Black.copy(alpha = 0.6f))
@@ -287,28 +384,20 @@ fun SipIntercomScreen(
                                     modifier = Modifier.fillMaxSize()
                                 )
 
-                                // Swap Hint & Hide Overlay Controls
-                                Row(
+                                Surface(
                                     modifier = Modifier
-                                        .fillMaxWidth()
-                                        .background(Color.Black.copy(alpha = 0.4f))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                        .align(Alignment.BottomStart)
+                                        .padding(6.dp),
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color.Black.copy(alpha = 0.6f)
                                 ) {
-                                    Text("TAP SWAP", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                    IconButton(
-                                        onClick = { isPipVisible = false },
-                                        modifier = Modifier.size(16.dp)
-                                    ) {
-                                        Icon(Icons.Default.VisibilityOff, contentDescription = "Hide", tint = Color.White, modifier = Modifier.size(12.dp))
-                                    }
+                                    Text("🟢 You", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
                                 }
                             }
                         }
                     }
 
-                    // Centered Caller Info & Controls Overlay
+                    // Main Call Content Overlay
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -316,200 +405,250 @@ fun SipIntercomScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.SpaceBetween
                     ) {
-                        // Top Bar Header with Signal Indicator
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 30.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                        // Top Connected Status Bar
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(top = 24.dp)
                         ) {
-                            Column {
-                                Text(
-                                    text = if (state.isVideoCall) "EZIY VIDEO INTERCOM" else "EZIY VOICE INTERCOM",
-                                    color = EziyGreen,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    letterSpacing = 1.2.sp
-                                )
-                                val mins = state.callDurationSeconds / 60
-                                val secs = state.callDurationSeconds % 60
-                                val statusStr = if (state.isCallConnected) {
-                                    String.format(Locale.US, "%02d:%02d", mins, secs)
-                                } else {
-                                    "Connecting / Dialing..."
-                                }
-                                Text(
-                                    text = statusStr,
-                                    color = Color.White.copy(alpha = 0.85f),
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Medium
-                                )
-                            }
+                            val mins = state.callDurationSeconds / 60
+                            val secs = state.callDurationSeconds % 60
+                            val timerStr = String.format(Locale.US, "%02d:%02d", mins, secs)
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = Color.Black.copy(alpha = 0.4f),
-                                    border = BorderStroke(1.dp, EziyGreen.copy(alpha = 0.4f))
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = Color.Black.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    Text("🎧", fontSize = 12.sp)
+                                    Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "📶 HD 30 FPS",
+                                        text = if (state.isCallConnected) "Connected • $timerStr" else "Calling...",
+                                        color = Color.White,
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("📶 5G HD", color = EziyGreen, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // SCREENSHOT 2: VOICE CALL CENTERED AVATAR & NAME
+                        if (!state.isVideoCall) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(16.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(160.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                Brush.radialGradient(
+                                                    colors = listOf(Color(0xFF00AEEF).copy(alpha = 0.2f), Color.Transparent)
+                                                )
+                                            )
+                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .size(120.dp)
+                                            .clip(CircleShape)
+                                            .background(EziyNavy),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = state.targetAddress.take(1).uppercase().ifBlank { "E" },
+                                            color = Color.White,
+                                            fontSize = 48.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Text(
+                                        text = state.targetAddress,
+                                        color = Color.White,
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = if (state.isCallConnected) "📊 Connected • HD Voice" else "📊 Calling...",
                                         color = EziyGreen,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                        fontSize = 13.sp,
+                                        fontWeight = FontWeight.SemiBold
                                     )
                                 }
+                            }
 
-                                if (state.isVideoCall && !isPipVisible) {
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    IconButton(
-                                        onClick = { isPipVisible = true },
-                                        modifier = Modifier
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.2f))
-                                    ) {
-                                        Icon(Icons.Default.Visibility, contentDescription = "Show PiP", tint = Color.White)
+                            // SCREENSHOT 2: 6-GRID ACTION BUTTONS MATRIX
+                            Column(
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    // 1. Mute
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        IconButton(
+                                            onClick = viewModel::toggleMute,
+                                            modifier = Modifier
+                                                .size(60.dp)
+                                                .clip(CircleShape)
+                                                .background(if (state.isMuted) EziyRed else Color.White.copy(alpha = 0.12f))
+                                        ) {
+                                            Icon(if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = "Mute", tint = Color.White)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Mute", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                    }
+
+                                    // 2. Keypad
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        IconButton(
+                                            onClick = {},
+                                            modifier = Modifier
+                                                .size(60.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.White.copy(alpha = 0.12f))
+                                        ) {
+                                            Icon(Icons.Default.Dialpad, contentDescription = "Keypad", tint = Color.White)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Keypad", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                    }
+
+                                    // 3. Speaker
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        IconButton(
+                                            onClick = viewModel::toggleSpeaker,
+                                            modifier = Modifier
+                                                .size(60.dp)
+                                                .clip(CircleShape)
+                                                .background(if (state.isSpeakerOn) Color(0xFF7C3AED) else Color.White.copy(alpha = 0.12f))
+                                        ) {
+                                            Icon(if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff, contentDescription = "Speaker", tint = Color.White)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Speaker", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    // 4. Add Call
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        IconButton(
+                                            onClick = {},
+                                            modifier = Modifier
+                                                .size(60.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.White.copy(alpha = 0.12f))
+                                        ) {
+                                            Icon(Icons.Default.PersonAdd, contentDescription = "Add", tint = Color.White)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Add Call", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                    }
+
+                                    // 5. Video Toggle
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        IconButton(
+                                            onClick = viewModel::toggleMidCallVideo,
+                                            modifier = Modifier
+                                                .size(60.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.White.copy(alpha = 0.12f))
+                                        ) {
+                                            Icon(Icons.Default.Videocam, contentDescription = "Video", tint = Color.White)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Video", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                    }
+
+                                    // 6. Contacts
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        IconButton(
+                                            onClick = {},
+                                            modifier = Modifier
+                                                .size(60.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.White.copy(alpha = 0.12f))
+                                        ) {
+                                            Icon(Icons.Default.Contacts, contentDescription = "Contacts", tint = Color.White)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text("Contacts", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                                     }
                                 }
                             }
+                        } else {
+                            // SCREENSHOT 3: VIDEO CALL BOTTOM GLASSMORPHISM BAR
+                            Spacer(modifier = Modifier.height(1.dp))
                         }
 
-                        // Centered Avatar & Caller Information Card
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .clip(CircleShape)
-                                    .background(EziyNavy),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                val initial = state.targetAddress.take(1).uppercase()
-                                Text(
-                                    text = if (initial.isBlank()) "I" else initial,
-                                    color = Color.White,
-                                    fontSize = 38.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-
-                            Text(
-                                text = state.targetAddress,
-                                color = Color.White,
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            if (state.isVideoCall) {
-                                Surface(
-                                    shape = RoundedCornerShape(10.dp),
-                                    color = Color.Black.copy(alpha = 0.4f)
-                                ) {
-                                    Text(
-                                        text = "📷 Remote Video Stream Active",
-                                        color = Color.White.copy(alpha = 0.8f),
-                                        fontSize = 11.sp,
-                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-
-                        // Bottom Action Glassmorphism Bar
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(bottom = 20.dp)
-                        ) {
+                        // SCREENSHOT 3: Bottom Glassmorphism Action Bar for Video Call
+                        if (state.isVideoCall) {
                             Surface(
                                 shape = RoundedCornerShape(24.dp),
-                                color = Color.Black.copy(alpha = 0.5f),
-                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
+                                color = Color.Black.copy(alpha = 0.6f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f))
                             ) {
                                 Row(
-                                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
                                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    IconButton(
-                                        onClick = viewModel::toggleMute,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.15f))
-                                    ) {
-                                        Icon(
-                                            imageVector = if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
-                                            contentDescription = "Mute",
-                                            tint = if (state.isMuted) EziyRed else Color.White,
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                                    IconButton(onClick = viewModel::toggleMute) {
+                                        Icon(if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = "Mute", tint = Color.White)
                                     }
-
-                                    // Mid-Call Video Toggle Button (Voice <-> Video)
-                                    IconButton(
-                                        onClick = viewModel::toggleMidCallVideo,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(if (state.isVideoCall) EziyNavy else Color.White.copy(alpha = 0.15f))
-                                    ) {
-                                        Icon(
-                                            imageVector = if (state.isVideoCall) Icons.Default.Videocam else Icons.Default.VideocamOff,
-                                            contentDescription = "Toggle Video",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                                    IconButton(onClick = viewModel::toggleMidCallVideo) {
+                                        Icon(Icons.Default.Videocam, contentDescription = "Video", tint = Color.White)
                                     }
-
-                                    if (state.isVideoCall) {
-                                        IconButton(
-                                            onClick = viewModel::switchCamera,
-                                            modifier = Modifier
-                                                .size(48.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White.copy(alpha = 0.15f))
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Cameraswitch,
-                                                contentDescription = "Switch Camera",
-                                                tint = Color.White,
-                                                modifier = Modifier.size(22.dp)
-                                            )
-                                        }
+                                    IconButton(onClick = viewModel::switchCamera) {
+                                        Icon(Icons.Default.Cameraswitch, contentDescription = "Camera", tint = Color.White)
                                     }
-
-                                    IconButton(
-                                        onClick = viewModel::toggleSpeaker,
-                                        modifier = Modifier
-                                            .size(48.dp)
-                                            .clip(CircleShape)
-                                            .background(Color.White.copy(alpha = 0.15f))
-                                    ) {
-                                        Icon(
-                                            imageVector = if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff,
-                                            contentDescription = "Speaker",
-                                            tint = if (state.isSpeakerOn) EziyGreen else Color.White,
-                                            modifier = Modifier.size(22.dp)
-                                        )
+                                    IconButton(onClick = {}) {
+                                        Icon(Icons.Default.PhoneInTalk, contentDescription = "Talk", tint = Color.White)
                                     }
-
+                                    IconButton(onClick = {}) {
+                                        Icon(Icons.Default.Share, contentDescription = "Share", tint = Color.White)
+                                    }
                                     FloatingActionButton(
                                         onClick = viewModel::hangUp,
                                         containerColor = EziyRed,
                                         contentColor = Color.White,
-                                        modifier = Modifier.size(60.dp)
+                                        modifier = Modifier.size(52.dp),
+                                        shape = CircleShape
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CallEnd,
-                                            contentDescription = "End Call",
-                                            modifier = Modifier.size(28.dp)
-                                        )
+                                        Icon(Icons.Default.CallEnd, contentDescription = "End Call")
                                     }
                                 }
+                            }
+                        } else {
+                            // Voice Call Large Center Red FAB
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                FloatingActionButton(
+                                    onClick = viewModel::hangUp,
+                                    containerColor = EziyRed,
+                                    contentColor = Color.White,
+                                    modifier = Modifier.size(72.dp),
+                                    shape = CircleShape
+                                ) {
+                                    Icon(Icons.Default.CallEnd, contentDescription = "End Call", modifier = Modifier.size(34.dp))
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Text("END CALL", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
                             }
                         }
                     }

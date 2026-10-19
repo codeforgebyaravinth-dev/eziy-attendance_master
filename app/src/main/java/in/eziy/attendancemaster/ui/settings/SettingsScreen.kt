@@ -1,8 +1,10 @@
 package `in`.eziy.attendancemaster.ui.settings
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -64,33 +66,97 @@ fun SettingsScreen(
             )
         }
 
-        EziyTextField(
-            value = state.serverUrl,
-            onValueChange = viewModel::onServerUrlChange,
-            label = "Server URL"
-        )
-
-        EziyTextField(
-            value = state.companyName,
-            onValueChange = viewModel::onCompanyNameChange,
-            label = "Company Name"
-        )
-
-        EziyTextField(
-            value = state.employeeName,
-            onValueChange = viewModel::onEmployeeNameChange,
-            label = "Employee Name"
-        )
-
+        // MAIN ODOO API SETTINGS CARD
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
-                    text = "Employee Badge ID: ${state.employeeId}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    text = "Odoo ERP Connection",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                EziyTextField(
+                    value = state.serverUrl,
+                    onValueChange = viewModel::onServerUrlChange,
+                    label = "Server URL"
+                )
+
+                EziyTextField(
+                    value = state.companyName,
+                    onValueChange = viewModel::onCompanyNameChange,
+                    label = "Company Name"
+                )
+
+                EziyTextField(
+                    value = state.employeeName,
+                    onValueChange = viewModel::onEmployeeNameChange,
+                    label = "Employee Name"
+                )
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Employee Badge ID: ${state.employeeId}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+        }
+
+        // SIP INTERCOM CONFIGURATION CARD
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(18.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "📞 SIP VoIP Intercom Configuration",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Text(
+                    text = "Configure your office PBX or Linphone extension for doorphone and reception VoIP calls.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                EziyTextField(
+                    value = state.sipDomain,
+                    onValueChange = viewModel::onSipDomainChange,
+                    label = "SIP Domain / Server IP (e.g. sip.linphone.org)"
+                )
+
+                EziyTextField(
+                    value = state.sipUsername,
+                    onValueChange = viewModel::onSipUsernameChange,
+                    label = "Extension ID / Username (e.g. 101)"
+                )
+
+                EziyTextField(
+                    value = state.sipPassword,
+                    onValueChange = viewModel::onSipPasswordChange,
+                    label = "SIP Password",
+                    isPassword = true
                 )
             }
         }

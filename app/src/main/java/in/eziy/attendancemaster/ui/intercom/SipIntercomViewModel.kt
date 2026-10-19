@@ -83,17 +83,19 @@ class SipIntercomViewModel(
                         incomingCallerAddress = msg.ifBlank { "Incoming Intercom Call" }
                     )
                 }
-                "OutgoingInit", "OutgoingProgress", "OutgoingRinging" -> {
+                "OutgoingInit", "OutgoingProgress", "OutgoingRinging", "EarlyMedia" -> {
                     _uiState.value = _uiState.value.copy(isCalling = true)
                 }
-                "StreamsRunning", "Connected" -> {
-                    _uiState.value = _uiState.value.copy(
-                        isCalling = false,
-                        isIncomingCall = false,
-                        isCallConnected = true,
-                        callDurationSeconds = 0
-                    )
-                    startCallTimer()
+                "StreamsRunning", "Connected", "UpdatedByRemote", "Updating" -> {
+                    if (!_uiState.value.isCallConnected) {
+                        _uiState.value = _uiState.value.copy(
+                            isCalling = false,
+                            isIncomingCall = false,
+                            isCallConnected = true,
+                            callDurationSeconds = 0
+                        )
+                        startCallTimer()
+                    }
                 }
                 "End", "Released", "Error" -> {
                     val duration = _uiState.value.callDurationSeconds

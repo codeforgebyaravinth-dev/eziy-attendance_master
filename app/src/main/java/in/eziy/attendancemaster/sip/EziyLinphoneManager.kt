@@ -91,18 +91,6 @@ class EziyLinphoneManager(private val context: Context) {
                 ) {
                     val stateStr = state?.name ?: "Idle"
                     Log.d("EziyLinphone", "SIP Call State: $stateStr ($message)")
-
-                    if (state == Call.State.StreamsRunning || state == Call.State.Connected) {
-                        try {
-                            if (call.currentParams.isVideoEnabled) {
-                                val params = core.createCallParams(call)
-                                params?.isVideoEnabled = true
-                                params?.videoDirection = MediaDirection.SendRecv
-                                call.update(params)
-                            }
-                        } catch (_: Exception) {}
-                    }
-
                     onCallStateChanged?.invoke(stateStr, message)
                 }
             })

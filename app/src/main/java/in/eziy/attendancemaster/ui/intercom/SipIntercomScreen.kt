@@ -17,10 +17,8 @@ import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Lock
@@ -238,45 +236,11 @@ fun SipIntercomScreen(
                         }
                     }
 
-                    // Quick Actions & Accept/Decline FABs
+                    // Decline / Accept Buttons
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                        verticalArrangement = Arrangement.spacedBy(20.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                IconButton(
-                                    onClick = {},
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.12f))
-                                ) {
-                                    Icon(Icons.Default.Alarm, contentDescription = "Remind", tint = Color.White)
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("Remind Me", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
-                            }
-
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                IconButton(
-                                    onClick = {},
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(CircleShape)
-                                        .background(Color.White.copy(alpha = 0.12f))
-                                ) {
-                                    Icon(Icons.Default.ChatBubbleOutline, contentDescription = "Message", tint = Color.White)
-                                }
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("Message", color = Color.White.copy(alpha = 0.7f), fontSize = 11.sp)
-                            }
-                        }
-
-                        // Decline / Accept Buttons
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -311,7 +275,7 @@ fun SipIntercomScreen(
                             }
                         }
 
-                        Text("^ SWIPE UP TO ACCEPT", color = Color.White.copy(alpha = 0.4f), fontSize = 10.sp, letterSpacing = 1.sp)
+                        Text("^ SWIPE UP TO ANSWER", color = Color.White.copy(alpha = 0.5f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp)
                     }
                 }
             }

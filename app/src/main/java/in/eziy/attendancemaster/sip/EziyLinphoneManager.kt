@@ -176,6 +176,9 @@ class EziyLinphoneManager(private val context: Context) {
             val params = linphoneCore.createCallParams(null)
             if (params != null) {
                 params.isVideoEnabled = isVideo
+                if (isVideo) {
+                    params.videoDirection = MediaDirection.SendRecv
+                }
                 linphoneCore.inviteAddressWithParams(address, params)
             }
         } catch (e: Exception) {
@@ -190,6 +193,9 @@ class EziyLinphoneManager(private val context: Context) {
             val params = linphoneCore.createCallParams(currentCall)
             if (params != null) {
                 params.isVideoEnabled = enableVideo
+                if (enableVideo) {
+                    params.videoDirection = MediaDirection.SendRecv
+                }
                 currentCall.update(params)
                 Log.d("EziyLinphone", "Toggled mid-call video: $enableVideo")
             }
@@ -207,6 +213,9 @@ class EziyLinphoneManager(private val context: Context) {
                 if (params != null) {
                     val enableVid = isVideo || call.remoteParams?.isVideoEnabled == true
                     params.isVideoEnabled = enableVid
+                    if (enableVid) {
+                        params.videoDirection = MediaDirection.SendRecv
+                    }
                     call.acceptWithParams(params)
                 } else {
                     call.accept()

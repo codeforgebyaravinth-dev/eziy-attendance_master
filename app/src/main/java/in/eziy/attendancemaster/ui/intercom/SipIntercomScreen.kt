@@ -3,6 +3,7 @@ package `in`.eziy.attendancemaster.ui.intercom
 import android.graphics.SurfaceTexture
 import android.view.TextureView
 import android.widget.Toast
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -23,6 +24,7 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -30,6 +32,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +64,18 @@ fun SipIntercomScreen(
     var isSwapped by remember { mutableStateOf(false) }
     var isPipVisible by remember { mutableStateOf(true) }
 
+    // Pulsing Animation for Samsung-Style Incoming Call UI
+    val infiniteTransition = rememberInfiniteTransition(label = "Pulse")
+    val pulseScale by infiniteTransition.animateFloat(
+        initialValue = 0.9f,
+        targetValue = 1.25f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(1000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "PulseScale"
+    )
+
     LaunchedEffect(state.toastMessage) {
         state.toastMessage?.let { msg ->
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
@@ -68,7 +83,7 @@ fun SipIntercomScreen(
         }
     }
 
-    // INCOMING CALL OVERLAY DIALOG WITH GRADIENT GLASSMORPHISM BACKGROUND
+    // SAMSUNG ONEUI ANIMATED INCOMING CALL OVERLAY DIALOG
     if (state.isIncomingCall) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss */ },
@@ -116,29 +131,39 @@ fun SipIntercomScreen(
                         )
                     }
 
+                    // Pulsing Avatar Circle
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(120.dp)
-                                .clip(CircleShape)
-                                .background(EziyNavy),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PhoneInTalk,
-                                contentDescription = "Incoming",
-                                tint = Color.White,
-                                modifier = Modifier.size(56.dp)
+                        Box(contentAlignment = Alignment.Center) {
+                            Box(
+                                modifier = Modifier
+                                    .size(150.dp)
+                                    .scale(pulseScale)
+                                    .clip(CircleShape)
+                                    .background(EziyGreen.copy(alpha = 0.2f))
                             )
+                            Box(
+                                modifier = Modifier
+                                    .size(110.dp)
+                                    .clip(CircleShape)
+                                    .background(EziyNavy),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PhoneInTalk,
+                                    contentDescription = "Incoming",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(52.dp)
+                                )
+                            }
                         }
 
                         Text(
                             text = state.incomingCallerAddress,
                             color = Color.White,
-                            fontSize = 24.sp,
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
@@ -406,7 +431,7 @@ fun SipIntercomScreen(
                             ) {
                                 Row(
                                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     IconButton(
@@ -420,6 +445,22 @@ fun SipIntercomScreen(
                                             imageVector = if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic,
                                             contentDescription = "Mute",
                                             tint = if (state.isMuted) EziyRed else Color.White,
+                                            modifier = Modifier.size(22.dp)
+                                        )
+                                    }
+
+                                    // Mid-Call Video Toggle Button (Voice <-> Video)
+                                    IconButton(
+                                        onClick = viewModel::toggleMidCallVideo,
+                                        modifier = Modifier
+                                            .size(48.dp)
+                                            .clip(CircleShape)
+                                            .background(if (state.isVideoCall) EziyNavy else Color.White.copy(alpha = 0.15f))
+                                    ) {
+                                        Icon(
+                                            imageVector = if (state.isVideoCall) Icons.Default.Videocam else Icons.Default.VideocamOff,
+                                            contentDescription = "Toggle Video",
+                                            tint = Color.White,
                                             modifier = Modifier.size(22.dp)
                                         )
                                     }
@@ -567,7 +608,7 @@ fun SipIntercomScreen(
             EziyHeader(titleText = "SIP VoIP Intercom")
 
             if (!isConfigured) {
-                // UNREGISTERED STAGE: SIP LOGIN FORM (Shown ONLY if no credentials exist)
+                // UNREGISTERED STAGE: SIP LOGIN FORM
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
@@ -608,15 +649,27 @@ fun SipIntercomScreen(
                             isPassword = true
                         )
 
-                        EziyButton(
-                            text = "CONNECT SIP INTERCOM",
-                            onClick = viewModel::connectSip,
-                            containerColor = EziyNavy
-                        )
+                        if (state.isConnecting) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Connecting Linphone SDK...")
+                            }
+                        } else {
+                            EziyButton(
+                                text = "CONNECT SIP INTERCOM",
+                                onClick = viewModel::connectSip,
+                                containerColor = EziyNavy
+                            )
+                        }
                     }
                 }
             } else {
-                // REGISTERED / AUTO-CONNECTING STAGE: SLEEK DASHBOARD
+                // REGISTERED STAGE: SLEEK DASHBOARD
                 // Top Header Pill Status
                 Card(
                     modifier = Modifier.fillMaxWidth(),

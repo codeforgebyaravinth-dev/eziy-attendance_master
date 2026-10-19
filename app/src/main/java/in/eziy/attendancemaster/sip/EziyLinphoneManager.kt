@@ -114,6 +114,11 @@ class EziyLinphoneManager(private val context: Context) {
         }
     }
 
+    fun isRegistered(): Boolean {
+        val account = core?.defaultAccount ?: return false
+        return account.state == RegistrationState.Ok
+    }
+
     fun setVideoSurfaces(remoteView: Any?, previewView: Any?) {
         try {
             val linphoneCore = core ?: return
@@ -191,6 +196,24 @@ class EziyLinphoneManager(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.e("EziyLinphone", "Make call error: ${e.message}", e)
+        }
+    }
+
+    fun toggleVideoMidCall(enableVideo: Boolean) {
+        val linphoneCore = core ?: return
+        try {
+            val currentCall = linphoneCore.currentCall ?: return
+            val params = linphoneCore.createCallParams(currentCall)
+            if (params != null) {
+                params.isVideoEnabled = enableVideo
+                if (enableVideo) {
+                    params.videoDirection = MediaDirection.SendRecv
+                }
+                currentCall.update(params)
+                Log.d("EziyLinphone", "Toggled mid-call video: $enableVideo")
+            }
+        } catch (e: Exception) {
+            Log.e("EziyLinphone", "Error toggling mid-call video: ${e.message}", e)
         }
     }
 

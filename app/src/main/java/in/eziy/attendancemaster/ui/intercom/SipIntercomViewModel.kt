@@ -136,6 +136,12 @@ class SipIntercomViewModel(
         linphoneManager.switchCamera()
     }
 
+    fun toggleMidCallVideo() {
+        val newVid = !_uiState.value.isVideoCall
+        _uiState.value = _uiState.value.copy(isVideoCall = newVid)
+        linphoneManager.toggleVideoMidCall(newVid)
+    }
+
     private fun recordCallLog(durationSec: Int) {
         val mins = durationSec / 60
         val secs = durationSec % 60
@@ -160,13 +166,17 @@ class SipIntercomViewModel(
         val user = prefs.sipUsername.ifBlank { prefs.employeeId }
         val pass = prefs.sipPassword.ifBlank { prefs.pin }
 
+        val alreadyRegistered = linphoneManager.isRegistered()
+
         _uiState.value = _uiState.value.copy(
             sipDomain = domain,
             sipUsername = user,
-            sipPassword = pass
+            sipPassword = pass,
+            isRegistered = alreadyRegistered,
+            isConnecting = !alreadyRegistered && user.isNotBlank()
         )
 
-        if (user.isNotBlank()) {
+        if (!alreadyRegistered && user.isNotBlank()) {
             connectSip()
         }
     }

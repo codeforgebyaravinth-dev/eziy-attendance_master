@@ -60,6 +60,10 @@ class SecurePreferencesManager(context: Context) {
         get() = prefs.getString(KEY_SIP_PASSWORD, "") ?: ""
         set(value) = prefs.edit().putString(KEY_SIP_PASSWORD, value).apply()
 
+    var callLogsJson: String
+        get() = prefs.getString(KEY_CALL_LOGS_JSON, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_CALL_LOGS_JSON, value).apply()
+
     fun isSipRegistered(): Boolean = sipUsername.isNotBlank() && sipDomain.isNotBlank()
 
     fun isLoggedIn(): Boolean = token.isNotBlank() && serverUrl.isNotBlank()
@@ -113,5 +117,6 @@ class SecurePreferencesManager(context: Context) {
         private const val KEY_SIP_DOMAIN = "sip_domain"
         private const val KEY_SIP_USERNAME = "sip_username"
         private const val KEY_SIP_PASSWORD = "sip_password"
+        private const val KEY_CALL_LOGS_JSON = "call_logs_json"
     }
 }

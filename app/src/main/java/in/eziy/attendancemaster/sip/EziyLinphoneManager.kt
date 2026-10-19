@@ -1,6 +1,9 @@
 package `in`.eziy.attendancemaster.sip
 
 import android.content.Context
+import android.media.Ringtone
+import android.media.RingtoneManager
+import android.os.Build
 import android.util.Log
 import org.linphone.core.*
 
@@ -8,6 +11,7 @@ class EziyLinphoneManager(private val context: Context) {
 
     private val factory: Factory = Factory.instance()
     private var core: Core? = null
+    private var ringtonePlayer: Ringtone? = null
 
     var onRegistrationStateChanged: ((Boolean, String) -> Unit)? = null
     var onCallStateChanged: ((Call.State?, String) -> Unit)? = null
@@ -16,12 +20,6 @@ class EziyLinphoneManager(private val context: Context) {
         try {
             factory.setDebugMode(true, "EziyLinphone")
             val linphoneCore = factory.createCore(null, null, context)
-
-            // Enable Ringtone Audio Playback Paths
-            val ringPath = context.filesDir.absolutePath + "/share/sounds/linphone/oldphone-mono.wav"
-            val ringbackPath = context.filesDir.absolutePath + "/share/sounds/linphone/ringback.wav"
-            linphoneCore.ring = ringPath
-            linphoneCore.ringback = ringbackPath
 
             // Enable Linphone Video Policy & Self View Preview
             linphoneCore.isVideoCaptureEnabled = true
@@ -95,6 +93,13 @@ class EziyLinphoneManager(private val context: Context) {
                     message: String
                 ) {
                     Log.d("EziyLinphone", "SIP Call State: ${state?.name} ($message)")
+
+                    if (state == Call.State.IncomingReceived || state == Call.State.IncomingEarlyMedia) {
+                        playRingtone()
+                    } else if (state == Call.State.Connected || state == Call.State.StreamsRunning || state == Call.State.End || state == Call.State.Released || state == Call.State.Error) {
+                        stopRingtone()
+                    }
+
                     onCallStateChanged?.invoke(state, message)
                 }
             })
@@ -104,6 +109,30 @@ class EziyLinphoneManager(private val context: Context) {
         } catch (e: Exception) {
             Log.e("EziyLinphone", "Linphone Core initialization failed: ${e.message}", e)
         }
+    }
+
+    fun playRingtone() {
+        try {
+            if (ringtonePlayer == null) {
+                val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+                ringtonePlayer = RingtoneManager.getRingtone(context, uri)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    ringtonePlayer?.isLooping = true
+                }
+            }
+            ringtonePlayer?.play()
+            Log.d("EziyLinphone", "System Ringtone Playing...")
+        } catch (e: Exception) {
+            Log.e("EziyLinphone", "Error playing ringtone: ${e.message}", e)
+        }
+    }
+
+    fun stopRingtone() {
+        try {
+            ringtonePlayer?.stop()
+            ringtonePlayer = null
+            Log.d("EziyLinphone", "System Ringtone Stopped.")
+        } catch (_: Exception) {}
     }
 
     fun isRegistered(): Boolean {
@@ -207,6 +236,7 @@ class EziyLinphoneManager(private val context: Context) {
     fun answerCall(isVideo: Boolean = false) {
         val linphoneCore = core ?: return
         try {
+            stopRingtone()
             val call = linphoneCore.currentCall
             if (call != null) {
                 val params = linphoneCore.createCallParams(call)
@@ -225,6 +255,7 @@ class EziyLinphoneManager(private val context: Context) {
 
     fun endCall() {
         try {
+            stopRingtone()
             core?.currentCall?.terminate()
         } catch (_: Exception) {}
     }

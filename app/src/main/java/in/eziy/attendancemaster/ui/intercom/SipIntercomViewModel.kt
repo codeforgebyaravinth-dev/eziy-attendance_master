@@ -2,6 +2,8 @@ package `in`.eziy.attendancemaster.ui.intercom
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import `in`.eziy.attendancemaster.data.local.SecurePreferencesManager
 import `in`.eziy.attendancemaster.sip.EziyLinphoneManager
 import kotlinx.coroutines.Job
@@ -49,6 +51,7 @@ class SipIntercomViewModel(
     private val _uiState = MutableStateFlow(SipIntercomUiState())
     val uiState: StateFlow<SipIntercomUiState> = _uiState.asStateFlow()
 
+    private val gson = Gson()
     private var timerJob: Job? = null
 
     init {
@@ -58,7 +61,20 @@ class SipIntercomViewModel(
 
     private fun loadInitialData() {
         loadSipCredentials()
-        // Default Call Logs
+        // Load Persistent Call Logs from prefs
+        val json = prefs.callLogsJson
+        if (json.isNotBlank()) {
+            try {
+                val type = object : TypeToken<List<SipCallLog>>() {}.type
+                val savedLogs: List<SipCallLog> = gson.fromJson(json, type)
+                if (savedLogs.isNotEmpty()) {
+                    _uiState.value = _uiState.value.copy(callLogs = savedLogs)
+                    return
+                }
+            } catch (_: Exception) {}
+        }
+
+        // Default Sample Logs if empty
         val defaultLogs = listOf(
             SipCallLog("🏢 Reception Intercom", "reception@sip.linphone.org", "12:42 PM", "02:15 mins", isOutgoing = true),
             SipCallLog("🚪 Front Gate Intercom", "gate@sip.linphone.org", "Yesterday", "01:05 mins", isOutgoing = false),
@@ -162,7 +178,13 @@ class SipIntercomViewModel(
         )
 
         val updated = listOf(newLog) + _uiState.value.callLogs
-        _uiState.value = _uiState.value.copy(callLogs = updated.take(10))
+        val persistentList = updated.take(20)
+        _uiState.value = _uiState.value.copy(callLogs = persistentList)
+
+        // Save to Encrypted SharedPreferences
+        try {
+            prefs.callLogsJson = gson.toJson(persistentList)
+        } catch (_: Exception) {}
     }
 
     fun loadSipCredentials() {

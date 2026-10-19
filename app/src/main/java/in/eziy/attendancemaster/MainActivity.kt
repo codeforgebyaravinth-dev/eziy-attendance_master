@@ -34,6 +34,7 @@ import `in`.eziy.attendancemaster.ui.history.HistoryScreen
 import `in`.eziy.attendancemaster.ui.history.HistoryViewModel
 import `in`.eziy.attendancemaster.ui.home.HomeScreen
 import `in`.eziy.attendancemaster.ui.home.HomeViewModel
+import `in`.eziy.attendancemaster.ui.intercom.SipIntercomCallOverlay
 import `in`.eziy.attendancemaster.ui.intercom.SipIntercomScreen
 import `in`.eziy.attendancemaster.ui.intercom.SipIntercomViewModel
 import `in`.eziy.attendancemaster.ui.navigation.EziyBottomNavItem
@@ -140,129 +141,133 @@ fun EziyNavApp(
     val currentRoute = navBackStackEntry?.destination?.route
     val showBottomBar = currentRoute in listOf("home", "history", "intercom", "settings") && !isCallActive
 
-    Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
-        bottomBar = {
-            if (showBottomBar) {
-                Surface(
-                    color = Color.White,
-                    tonalElevation = 0.dp
-                ) {
-                    Column {
-                        HorizontalDivider(
-                            color = Color(0xFFEEEEEE),
-                            thickness = 1.dp
-                        )
-                        NavigationBar(
-                            containerColor = Color.White,
-                            tonalElevation = 0.dp,
-                            modifier = Modifier.height(68.dp)
-                        ) {
-                            EziyBottomNavItem.items.forEach { item ->
-                                val selected = currentRoute == item.route
-                                NavigationBarItem(
-                                    icon = {
-                                        Icon(
-                                            imageVector = item.icon,
-                                            contentDescription = item.title,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            text = item.title,
-                                            fontSize = 12.sp,
-                                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
-                                        )
-                                    },
-                                    selected = selected,
-                                    onClick = {
-                                        if (currentRoute != item.route) {
-                                            if (item.route == "history") historyViewModel.loadHistory()
-                                            if (item.route == "home") {
-                                                homeViewModel.loadUserInfo()
-                                                homeViewModel.refreshStatus()
-                                            }
-                                            if (item.route == "intercom") {
-                                                sipIntercomViewModel.loadSipCredentials()
-                                            }
-                                            if (item.route == "settings") {
-                                                settingsViewModel.loadSettings()
-                                            }
-                                            navController.navigate(item.route) {
-                                                popUpTo(navController.graph.findStartDestination().id) {
-                                                    saveState = true
+    Box(modifier = Modifier.fillMaxSize()) {
+        SipIntercomCallOverlay(viewModel = sipIntercomViewModel)
+
+        Scaffold(
+            containerColor = MaterialTheme.colorScheme.background,
+            bottomBar = {
+                if (showBottomBar) {
+                    Surface(
+                        color = Color.White,
+                        tonalElevation = 0.dp
+                    ) {
+                        Column {
+                            HorizontalDivider(
+                                color = Color(0xFFEEEEEE),
+                                thickness = 1.dp
+                            )
+                            NavigationBar(
+                                containerColor = Color.White,
+                                tonalElevation = 0.dp,
+                                modifier = Modifier.height(68.dp)
+                            ) {
+                                EziyBottomNavItem.items.forEach { item ->
+                                    val selected = currentRoute == item.route
+                                    NavigationBarItem(
+                                        icon = {
+                                            Icon(
+                                                imageVector = item.icon,
+                                                contentDescription = item.title,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        },
+                                        label = {
+                                            Text(
+                                                text = item.title,
+                                                fontSize = 12.sp,
+                                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+                                            )
+                                        },
+                                        selected = selected,
+                                        onClick = {
+                                            if (currentRoute != item.route) {
+                                                if (item.route == "history") historyViewModel.loadHistory()
+                                                if (item.route == "home") {
+                                                    homeViewModel.loadUserInfo()
+                                                    homeViewModel.refreshStatus()
                                                 }
-                                                launchSingleTop = true
-                                                restoreState = true
+                                                if (item.route == "intercom") {
+                                                    sipIntercomViewModel.loadSipCredentials()
+                                                }
+                                                if (item.route == "settings") {
+                                                    settingsViewModel.loadSettings()
+                                                }
+                                                navController.navigate(item.route) {
+                                                    popUpTo(navController.graph.findStartDestination().id) {
+                                                        saveState = true
+                                                    }
+                                                    launchSingleTop = true
+                                                    restoreState = true
+                                                }
                                             }
-                                        }
-                                    },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = EziyNavy,
-                                        selectedTextColor = EziyNavy,
-                                        indicatorColor = EziyCyanLight,
-                                        unselectedIconColor = Color(0xFF6B7280),
-                                        unselectedTextColor = Color(0xFF6B7280)
+                                        },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            selectedIconColor = EziyNavy,
+                                            selectedTextColor = EziyNavy,
+                                            indicatorColor = EziyCyanLight,
+                                            unselectedIconColor = Color(0xFF6B7280),
+                                            unselectedTextColor = Color(0xFF6B7280)
+                                        )
                                     )
-                                )
+                                }
                             }
                         }
                     }
                 }
             }
-        }
-    ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(if (isCallActive) PaddingValues(0.dp) else paddingValues)
-        ) {
-            composable("setup") {
-                SetupScreen(
-                    viewModel = setupViewModel,
-                    onSetupSuccess = {
-                        onStartMqtt()
-                        setupViewModel.resetSuccess()
-                        homeViewModel.loadUserInfo()
-                        homeViewModel.refreshStatus()
-                        settingsViewModel.loadSettings()
-                        navController.navigate("home") {
-                            popUpTo("setup") { inclusive = true }
+        ) { paddingValues ->
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(if (isCallActive) PaddingValues(0.dp) else paddingValues)
+            ) {
+                composable("setup") {
+                    SetupScreen(
+                        viewModel = setupViewModel,
+                        onSetupSuccess = {
+                            onStartMqtt()
+                            setupViewModel.resetSuccess()
+                            homeViewModel.loadUserInfo()
+                            homeViewModel.refreshStatus()
+                            settingsViewModel.loadSettings()
+                            navController.navigate("home") {
+                                popUpTo("setup") { inclusive = true }
+                            }
                         }
-                    }
-                )
-            }
+                    )
+                }
 
-            composable("home") {
-                HomeScreen(
-                    viewModel = homeViewModel,
-                    onRequestPermissions = { onRequestPermissions() }
-                )
-            }
+                composable("home") {
+                    HomeScreen(
+                        viewModel = homeViewModel,
+                        onRequestPermissions = { onRequestPermissions() }
+                    )
+                }
 
-            composable("history") {
-                HistoryScreen(
-                    viewModel = historyViewModel
-                )
-            }
+                composable("history") {
+                    HistoryScreen(
+                        viewModel = historyViewModel
+                    )
+                }
 
-            composable("intercom") {
-                SipIntercomScreen(
-                    viewModel = sipIntercomViewModel
-                )
-            }
+                composable("intercom") {
+                    SipIntercomScreen(
+                        viewModel = sipIntercomViewModel
+                    )
+                }
 
-            composable("settings") {
-                SettingsScreen(
-                    viewModel = settingsViewModel,
-                    onLogout = {
-                        onStopMqtt()
-                        navController.navigate("setup") {
-                            popUpTo(0) { inclusive = true }
+                composable("settings") {
+                    SettingsScreen(
+                        viewModel = settingsViewModel,
+                        onLogout = {
+                            onStopMqtt()
+                            navController.navigate("setup") {
+                                popUpTo(0) { inclusive = true }
+                            }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
     }

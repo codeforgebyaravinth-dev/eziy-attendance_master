@@ -17,6 +17,12 @@ class EziyLinphoneManager(private val context: Context) {
             factory.setDebugMode(true, "EziyLinphone")
             val linphoneCore = factory.createCore(null, null, context)
 
+            // Enable Ringtone Audio Playback Paths
+            val ringPath = context.filesDir.absolutePath + "/share/sounds/linphone/oldphone-mono.wav"
+            val ringbackPath = context.filesDir.absolutePath + "/share/sounds/linphone/ringback.wav"
+            linphoneCore.ring = ringPath
+            linphoneCore.ringback = ringbackPath
+
             // Enable Linphone Video Policy & Self View Preview
             linphoneCore.isVideoCaptureEnabled = true
             linphoneCore.isVideoDisplayEnabled = true

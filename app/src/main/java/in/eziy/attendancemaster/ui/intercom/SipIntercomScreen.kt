@@ -51,14 +51,11 @@ import `in`.eziy.attendancemaster.ui.theme.EziyNavy
 import `in`.eziy.attendancemaster.ui.theme.EziyRed
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SipIntercomScreen(
+fun SipIntercomCallOverlay(
     viewModel: SipIntercomViewModel
 ) {
     val state by viewModel.uiState.collectAsState()
-    val context = LocalContext.current
-    var showDialSheet by remember { mutableStateOf(false) }
 
     var remoteTextureView by remember { mutableStateOf<TextureView?>(null) }
     var localTextureView by remember { mutableStateOf<TextureView?>(null) }
@@ -77,16 +74,7 @@ fun SipIntercomScreen(
         label = "PulseScale"
     )
 
-    LaunchedEffect(state.toastMessage) {
-        state.toastMessage?.let { msg ->
-            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
-            viewModel.clearToast()
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────────
-    // 100% EDGE-TO-EDGE FULLSCREEN INCOMING CALL OVERLAY DIALOG
-    // ─────────────────────────────────────────────────────────────
+    // GLOBAL INCOMING CALL OVERLAY DIALOG
     if (state.isIncomingCall) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss */ },
@@ -280,9 +268,7 @@ fun SipIntercomScreen(
         }
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 100% EDGE-TO-EDGE FULLSCREEN ACTIVE VOICE / VIDEO CALL OVERLAY
-    // ─────────────────────────────────────────────────────────────
+    // GLOBAL ACTIVE VOICE / VIDEO CALL OVERLAY DIALOG
     if (state.isCalling || state.isCallConnected) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss */ },
@@ -562,6 +548,23 @@ fun SipIntercomScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SipIntercomScreen(
+    viewModel: SipIntercomViewModel
+) {
+    val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    var showDialSheet by remember { mutableStateOf(false) }
+
+    LaunchedEffect(state.toastMessage) {
+        state.toastMessage?.let { msg ->
+            Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
+            viewModel.clearToast()
         }
     }
 

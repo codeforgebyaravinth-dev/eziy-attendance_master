@@ -89,7 +89,7 @@ class EziyLinphoneManager(private val context: Context) {
                     state: Call.State?,
                     message: String
                 ) {
-                    Log.d("EziyLinphone", "SIP Call State: $state ($message)")
+                    Log.d("EziyLinphone", "SIP Call State: ${state?.name} ($message)")
                     onCallStateChanged?.invoke(state, message)
                 }
             })

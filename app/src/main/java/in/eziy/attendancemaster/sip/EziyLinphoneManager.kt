@@ -10,7 +10,7 @@ class EziyLinphoneManager(private val context: Context) {
     private var core: Core? = null
 
     var onRegistrationStateChanged: ((Boolean, String) -> Unit)? = null
-    var onCallStateChanged: ((String, String) -> Unit)? = null
+    var onCallStateChanged: ((Call.State?, String) -> Unit)? = null
 
     init {
         try {
@@ -89,9 +89,8 @@ class EziyLinphoneManager(private val context: Context) {
                     state: Call.State?,
                     message: String
                 ) {
-                    val stateStr = state?.name ?: "Idle"
-                    Log.d("EziyLinphone", "SIP Call State: $stateStr ($message)")
-                    onCallStateChanged?.invoke(stateStr, message)
+                    Log.d("EziyLinphone", "SIP Call State: $state ($message)")
+                    onCallStateChanged?.invoke(state, message)
                 }
             })
 
@@ -136,6 +135,7 @@ class EziyLinphoneManager(private val context: Context) {
             val serverAddr = factory.createAddress(serverUri) ?: factory.createAddress("sip:$domain") ?: return
             params.serverAddress = serverAddr
             params.isRegisterEnabled = true
+            params.expires = 3600
 
             val account = linphoneCore.createAccount(params)
             linphoneCore.addAccount(account)

@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.linphone.core.Call
 import java.util.Locale
 
 data class SipCallLog(
@@ -75,18 +76,18 @@ class SipIntercomViewModel(
             )
         }
 
-        linphoneManager.onCallStateChanged = { stateStr, msg ->
-            when (stateStr) {
-                "IncomingReceived", "IncomingEarlyMedia" -> {
+        linphoneManager.onCallStateChanged = { state, msg ->
+            when (state) {
+                Call.State.IncomingReceived, Call.State.IncomingEarlyMedia -> {
                     _uiState.value = _uiState.value.copy(
                         isIncomingCall = true,
                         incomingCallerAddress = msg.ifBlank { "Incoming Intercom Call" }
                     )
                 }
-                "OutgoingInit", "OutgoingProgress", "OutgoingRinging", "EarlyMedia" -> {
+                Call.State.OutgoingInit, Call.State.OutgoingProgress, Call.State.OutgoingRinging, Call.State.OutgoingEarlyMedia -> {
                     _uiState.value = _uiState.value.copy(isCalling = true)
                 }
-                "StreamsRunning", "Connected", "UpdatedByRemote", "Updating" -> {
+                Call.State.StreamsRunning, Call.State.Connected, Call.State.UpdatedByRemote -> {
                     if (!_uiState.value.isCallConnected) {
                         _uiState.value = _uiState.value.copy(
                             isCalling = false,
@@ -97,7 +98,7 @@ class SipIntercomViewModel(
                         startCallTimer()
                     }
                 }
-                "End", "Released", "Error" -> {
+                Call.State.End, Call.State.Released, Call.State.Error -> {
                     val duration = _uiState.value.callDurationSeconds
                     if (duration > 0) {
                         recordCallLog(duration)
@@ -110,6 +111,7 @@ class SipIntercomViewModel(
                         callDurationSeconds = 0
                     )
                 }
+                else -> {}
             }
         }
     }

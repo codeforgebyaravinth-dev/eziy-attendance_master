@@ -166,14 +166,18 @@ class SipIntercomViewModel(
         val mins = durationSec / 60
         val secs = durationSec % 60
         val durationStr = String.format(Locale.US, "%02d:%02d mins", mins, secs)
-        val target = _uiState.value.targetAddress.ifBlank { "Intercom Extension" }
+
+        val isIncoming = _uiState.value.incomingCallerAddress.isNotBlank() && !_uiState.value.isCalling
+        val rawAddress = if (isIncoming) _uiState.value.incomingCallerAddress else _uiState.value.targetAddress.ifBlank { "Intercom Extension" }
+        val displayAddress = rawAddress.substringBefore("@")
+        val displayTitle = if (displayAddress.contains("reception", ignoreCase = true)) "🏢 Reception Intercom" else "👤 $displayAddress"
 
         val newLog = SipCallLog(
-            title = if (target.contains("reception")) "🏢 Reception Intercom" else "📞 $target",
-            extension = target,
+            title = displayTitle,
+            extension = rawAddress,
             timeAgo = "Just now",
             durationText = durationStr,
-            isOutgoing = true,
+            isOutgoing = !isIncoming,
             isVideo = _uiState.value.isVideoCall
         )
 

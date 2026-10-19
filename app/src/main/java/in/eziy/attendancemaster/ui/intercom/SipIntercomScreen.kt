@@ -19,12 +19,10 @@ import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PhoneInTalk
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
@@ -87,12 +85,12 @@ fun SipIntercomScreen(
     }
 
     // ─────────────────────────────────────────────────────────────
-    // SCREENSHOT 1: INCOMING CALL SCREEN (DARK RADIAL AURA & DUAL FABS)
+    // 100% EDGE-TO-EDGE FULLSCREEN INCOMING CALL OVERLAY DIALOG
     // ─────────────────────────────────────────────────────────────
     if (state.isIncomingCall) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss */ },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
         ) {
             Box(
                 modifier = Modifier
@@ -113,7 +111,7 @@ fun SipIntercomScreen(
                     // Top Header Pill
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(top = 16.dp)
+                        modifier = Modifier.padding(top = 24.dp)
                     ) {
                         Surface(
                             shape = RoundedCornerShape(20.dp),
@@ -283,19 +281,19 @@ fun SipIntercomScreen(
     }
 
     // ─────────────────────────────────────────────────────────────
-    // SCREENSHOT 2 & 3: ACTIVE VOICE / VIDEO CALL SCREEN
+    // 100% EDGE-TO-EDGE FULLSCREEN ACTIVE VOICE / VIDEO CALL OVERLAY
     // ─────────────────────────────────────────────────────────────
     if (state.isCalling || state.isCallConnected) {
         Dialog(
             onDismissRequest = { /* Prevent dismiss */ },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
+            properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)
         ) {
             Surface(
                 modifier = Modifier.fillMaxSize(),
                 color = Color(0xFF0F172A)
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
-                    // SCREENSHOT 3: Full-Screen Video Surface
+                    // Full-Screen Video Surface
                     if (state.isVideoCall) {
                         AndroidView(
                             factory = { ctx ->
@@ -372,7 +370,7 @@ fun SipIntercomScreen(
                         // Top Connected Status Bar
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier.padding(top = 24.dp)
+                            modifier = Modifier.padding(top = 28.dp)
                         ) {
                             val mins = state.callDurationSeconds / 60
                             val secs = state.callDurationSeconds % 60
@@ -401,7 +399,7 @@ fun SipIntercomScreen(
                             }
                         }
 
-                        // SCREENSHOT 2: VOICE CALL CENTERED AVATAR & NAME
+                        // VOICE CALL CENTERED AVATAR & NAME
                         if (!state.isVideoCall) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -451,117 +449,63 @@ fun SipIntercomScreen(
                                 }
                             }
 
-                            // SCREENSHOT 2: 6-GRID ACTION BUTTONS MATRIX
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+                            // CLEAN 3-BUTTON STREAMLINED ACTION ROW FOR VOICE CALL
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    // 1. Mute
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        IconButton(
-                                            onClick = viewModel::toggleMute,
-                                            modifier = Modifier
-                                                .size(60.dp)
-                                                .clip(CircleShape)
-                                                .background(if (state.isMuted) EziyRed else Color.White.copy(alpha = 0.12f))
-                                        ) {
-                                            Icon(if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = "Mute", tint = Color.White)
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text("Mute", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                // 1. Mute Button
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    IconButton(
+                                        onClick = viewModel::toggleMute,
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .clip(CircleShape)
+                                            .background(if (state.isMuted) EziyRed else Color.White.copy(alpha = 0.15f))
+                                    ) {
+                                        Icon(if (state.isMuted) Icons.Default.MicOff else Icons.Default.Mic, contentDescription = "Mute", tint = Color.White, modifier = Modifier.size(28.dp))
                                     }
-
-                                    // 2. Keypad
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        IconButton(
-                                            onClick = {},
-                                            modifier = Modifier
-                                                .size(60.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White.copy(alpha = 0.12f))
-                                        ) {
-                                            Icon(Icons.Default.Dialpad, contentDescription = "Keypad", tint = Color.White)
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text("Keypad", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                                    }
-
-                                    // 3. Speaker
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        IconButton(
-                                            onClick = viewModel::toggleSpeaker,
-                                            modifier = Modifier
-                                                .size(60.dp)
-                                                .clip(CircleShape)
-                                                .background(if (state.isSpeakerOn) Color(0xFF7C3AED) else Color.White.copy(alpha = 0.12f))
-                                        ) {
-                                            Icon(if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff, contentDescription = "Speaker", tint = Color.White)
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text("Speaker", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text("Mute", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                                 }
 
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceEvenly
-                                ) {
-                                    // 4. Add Call
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        IconButton(
-                                            onClick = {},
-                                            modifier = Modifier
-                                                .size(60.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White.copy(alpha = 0.12f))
-                                        ) {
-                                            Icon(Icons.Default.PersonAdd, contentDescription = "Add", tint = Color.White)
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text("Add Call", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                // 2. Video Upgrade Button
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    IconButton(
+                                        onClick = viewModel::toggleMidCallVideo,
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .clip(CircleShape)
+                                            .background(Color.White.copy(alpha = 0.15f))
+                                    ) {
+                                        Icon(Icons.Default.Videocam, contentDescription = "Video", tint = Color.White, modifier = Modifier.size(28.dp))
                                     }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text("Video", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                }
 
-                                    // 5. Video Toggle
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        IconButton(
-                                            onClick = viewModel::toggleMidCallVideo,
-                                            modifier = Modifier
-                                                .size(60.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White.copy(alpha = 0.12f))
-                                        ) {
-                                            Icon(Icons.Default.Videocam, contentDescription = "Video", tint = Color.White)
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text("Video", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
+                                // 3. Speaker Button
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    IconButton(
+                                        onClick = viewModel::toggleSpeaker,
+                                        modifier = Modifier
+                                            .size(64.dp)
+                                            .clip(CircleShape)
+                                            .background(if (state.isSpeakerOn) Color(0xFF7C3AED) else Color.White.copy(alpha = 0.15f))
+                                    ) {
+                                        Icon(if (state.isSpeakerOn) Icons.AutoMirrored.Filled.VolumeUp else Icons.AutoMirrored.Filled.VolumeOff, contentDescription = "Speaker", tint = Color.White, modifier = Modifier.size(28.dp))
                                     }
-
-                                    // 6. Contacts
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        IconButton(
-                                            onClick = {},
-                                            modifier = Modifier
-                                                .size(60.dp)
-                                                .clip(CircleShape)
-                                                .background(Color.White.copy(alpha = 0.12f))
-                                        ) {
-                                            Icon(Icons.Default.Contacts, contentDescription = "Contacts", tint = Color.White)
-                                        }
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Text("Contacts", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
-                                    }
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text("Speaker", color = Color.White.copy(alpha = 0.8f), fontSize = 12.sp)
                                 }
                             }
                         } else {
-                            // SCREENSHOT 3: VIDEO CALL BOTTOM GLASSMORPHISM BAR
+                            // VIDEO CALL BOTTOM GLASSMORPHISM BAR
                             Spacer(modifier = Modifier.height(1.dp))
                         }
 
-                        // SCREENSHOT 3: Bottom Glassmorphism Action Bar for Video Call
+                        // Bottom Action Controls
                         if (state.isVideoCall) {
                             Surface(
                                 shape = RoundedCornerShape(24.dp),

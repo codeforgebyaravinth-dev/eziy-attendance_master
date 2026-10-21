@@ -15,6 +15,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallReceived
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CallEnd
@@ -780,11 +781,25 @@ fun SipIntercomScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(14.dp),
+                            .padding(12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
+                            IconButton(
+                                onClick = viewModel::disconnectSip,
+                                modifier = Modifier.size(36.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                                    contentDescription = "Logout SIP",
+                                    tint = EziyRed,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(4.dp))
+
                             Surface(
                                 shape = RoundedCornerShape(10.dp),
                                 color = if (state.isRegistered) EziyGreen.copy(alpha = 0.12f) else EziyNavy.copy(alpha = 0.12f)
@@ -809,17 +824,13 @@ fun SipIntercomScreen(
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Text(
-                                text = if (state.sipDomain.isNotBlank()) "${state.sipUsername}@${state.sipDomain}" else state.sipUsername,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold
-                            )
                         }
 
-                        TextButton(onClick = viewModel::disconnectSip) {
-                            Text("Logout", color = EziyRed, fontSize = 12.sp)
-                        }
+                        Text(
+                            text = if (state.sipDomain.isNotBlank()) "${state.sipUsername}@${state.sipDomain}" else state.sipUsername,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
 

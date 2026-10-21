@@ -68,6 +68,10 @@ class SecurePreferencesManager(context: Context) {
         get() = prefs.getString(KEY_SPEED_DIAL_JSON, "") ?: ""
         set(value) = prefs.edit().putString(KEY_SPEED_DIAL_JSON, value).apply()
 
+    var contactsJson: String
+        get() = prefs.getString(KEY_CONTACTS_JSON, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_CONTACTS_JSON, value).apply()
+
     fun isSipRegistered(): Boolean = sipUsername.isNotBlank() && sipDomain.isNotBlank()
 
     fun isLoggedIn(): Boolean = token.isNotBlank() && serverUrl.isNotBlank()
@@ -123,5 +127,6 @@ class SecurePreferencesManager(context: Context) {
         private const val KEY_SIP_PASSWORD = "sip_password"
         private const val KEY_CALL_LOGS_JSON = "call_logs_json"
         private const val KEY_SPEED_DIAL_JSON = "speed_dial_json"
+        private const val KEY_CONTACTS_JSON = "contacts_json"
     }
 }

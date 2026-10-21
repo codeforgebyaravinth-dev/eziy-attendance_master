@@ -107,14 +107,25 @@ class SipIntercomViewModel(
             )
         }
 
-        // Office Directory Contacts List
-        val directoryContacts = listOf(
-            SipContact("Elena Rostova", "Design Director", "reception", isOnline = true),
-            SipContact("Marcus Chen", "VP of Engineering", "101", isOnline = true),
-            SipContact("Security Desk", "Front Gate & Patrol", "gate", isOnline = true),
-            SipContact("IT Helpdesk", "Systems & Hardware", "102", isOnline = true),
-            SipContact("HR Operations", "People & Talent", "104", isOnline = false)
-        )
+        // Persistent Directory Contacts List
+        var directoryContacts: List<SipContact> = emptyList()
+        val ctJson = prefs.contactsJson
+        if (ctJson.isNotBlank()) {
+            try {
+                val type = object : TypeToken<List<SipContact>>() {}.type
+                directoryContacts = gson.fromJson(ctJson, type)
+            } catch (_: Exception) {}
+        }
+
+        if (directoryContacts.isEmpty()) {
+            directoryContacts = listOf(
+                SipContact("Elena Rostova", "Design Director", "reception", isOnline = true),
+                SipContact("Marcus Chen", "VP of Engineering", "101", isOnline = true),
+                SipContact("Security Desk", "Front Gate & Patrol", "gate", isOnline = true),
+                SipContact("IT Helpdesk", "Systems & Hardware", "102", isOnline = true),
+                SipContact("HR Operations", "People & Talent", "104", isOnline = false)
+            )
+        }
 
         // Persistent Call Logs from prefs
         var logsList: List<SipCallLog> = emptyList()
@@ -189,6 +200,31 @@ class SipIntercomViewModel(
                 else -> {}
             }
         }
+    }
+
+    fun addContact(name: String, role: String, extension: String) {
+        val cleanName = name.trim()
+        val cleanExt = extension.trim()
+        if (cleanName.isBlank() || cleanExt.isBlank()) {
+            _uiState.value = _uiState.value.copy(toastMessage = "Please enter Contact Name & Extension")
+            return
+        }
+
+        val newContact = SipContact(cleanName, role.ifBlank { "Office Extension" }, cleanExt, isOnline = true)
+        val updated = listOf(newContact) + _uiState.value.contacts.filterNot { it.extension == cleanExt }
+        _uiState.value = _uiState.value.copy(contacts = updated, toastMessage = "Contact $cleanName Added")
+
+        try {
+            prefs.contactsJson = gson.toJson(updated)
+        } catch (_: Exception) {}
+    }
+
+    fun removeContact(extension: String) {
+        val updated = _uiState.value.contacts.filterNot { it.extension == extension }
+        _uiState.value = _uiState.value.copy(contacts = updated, toastMessage = "Contact Removed")
+        try {
+            prefs.contactsJson = gson.toJson(updated)
+        } catch (_: Exception) {}
     }
 
     fun updateSpeedDialItem(id: Int, newName: String, newExtension: String, newIcon: String) {

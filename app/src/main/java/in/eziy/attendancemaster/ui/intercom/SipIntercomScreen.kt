@@ -18,8 +18,10 @@ import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
@@ -567,11 +569,61 @@ fun SipIntercomScreen(
     var editExt by remember { mutableStateOf("") }
     var editEmoji by remember { mutableStateOf("📞") }
 
+    var showAddContactDialog by remember { mutableStateOf(false) }
+    var newContactName by remember { mutableStateOf("") }
+    var newContactRole by remember { mutableStateOf("") }
+    var newContactExt by remember { mutableStateOf("") }
+
     LaunchedEffect(state.toastMessage) {
         state.toastMessage?.let { msg ->
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             viewModel.clearToast()
         }
+    }
+
+    if (showAddContactDialog) {
+        AlertDialog(
+            onDismissRequest = { showAddContactDialog = false },
+            title = { Text("➕ Add New Intercom Contact", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    EziyTextField(
+                        value = newContactName,
+                        onValueChange = { newContactName = it },
+                        label = "Contact Name (e.g. John Doe)"
+                    )
+                    EziyTextField(
+                        value = newContactRole,
+                        onValueChange = { newContactRole = it },
+                        label = "Role / Dept (e.g. QA Manager)"
+                    )
+                    EziyTextField(
+                        value = newContactExt,
+                        onValueChange = { newContactExt = it },
+                        label = "Extension ID (e.g. 107)"
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.addContact(newContactName, newContactRole, newContactExt)
+                        newContactName = ""
+                        newContactRole = ""
+                        newContactExt = ""
+                        showAddContactDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = EziyNavy)
+                ) {
+                    Text("ADD CONTACT")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddContactDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (editingSpeedDialItem != null) {
@@ -938,7 +990,7 @@ fun SipIntercomScreen(
                     }
 
                     1 -> {
-                        // TAB 1: CONTACTS DIRECTORY SECTION
+                        // TAB 1: CONTACTS DIRECTORY SECTION WITH ADD CONTACT BUTTON
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(18.dp),
@@ -949,11 +1001,28 @@ fun SipIntercomScreen(
                                 modifier = Modifier.padding(16.dp),
                                 verticalArrangement = Arrangement.spacedBy(10.dp)
                             ) {
-                                Text(
-                                    text = "👥 Intercom Contacts Directory",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "👥 Intercom Contacts",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    Button(
+                                        onClick = { showAddContactDialog = true },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.buttonColors(containerColor = EziyNavy)
+                                    ) {
+                                        Icon(Icons.Default.Add, contentDescription = "Add Contact", modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("ADD", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
 
                                 state.contacts.forEachIndexed { idx, contact ->
                                     Row(
@@ -992,6 +1061,12 @@ fun SipIntercomScreen(
                                                 modifier = Modifier.size(36.dp)
                                             ) {
                                                 Icon(Icons.Default.Videocam, contentDescription = "Video", tint = EziyNavy, modifier = Modifier.size(20.dp))
+                                            }
+                                            IconButton(
+                                                onClick = { viewModel.removeContact(contact.extension) },
+                                                modifier = Modifier.size(36.dp)
+                                            ) {
+                                                Icon(Icons.Default.Delete, contentDescription = "Remove", tint = EziyRed.copy(alpha = 0.7f), modifier = Modifier.size(18.dp))
                                             }
                                         }
                                     }

@@ -49,7 +49,7 @@ class SecurePreferencesManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_TOKEN, value).apply()
 
     var sipDomain: String
-        get() = prefs.getString(KEY_SIP_DOMAIN, "sip.linphone.org") ?: "sip.linphone.org"
+        get() = prefs.getString(KEY_SIP_DOMAIN, "") ?: ""
         set(value) = prefs.edit().putString(KEY_SIP_DOMAIN, value.trim()).apply()
 
     var sipUsername: String
@@ -63,6 +63,10 @@ class SecurePreferencesManager(context: Context) {
     var callLogsJson: String
         get() = prefs.getString(KEY_CALL_LOGS_JSON, "") ?: ""
         set(value) = prefs.edit().putString(KEY_CALL_LOGS_JSON, value).apply()
+
+    var speedDialJson: String
+        get() = prefs.getString(KEY_SPEED_DIAL_JSON, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_SPEED_DIAL_JSON, value).apply()
 
     fun isSipRegistered(): Boolean = sipUsername.isNotBlank() && sipDomain.isNotBlank()
 
@@ -118,5 +122,6 @@ class SecurePreferencesManager(context: Context) {
         private const val KEY_SIP_USERNAME = "sip_username"
         private const val KEY_SIP_PASSWORD = "sip_password"
         private const val KEY_CALL_LOGS_JSON = "call_logs_json"
+        private const val KEY_SPEED_DIAL_JSON = "speed_dial_json"
     }
 }

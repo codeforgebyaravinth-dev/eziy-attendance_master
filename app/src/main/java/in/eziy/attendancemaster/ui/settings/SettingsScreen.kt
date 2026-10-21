@@ -1,5 +1,6 @@
 package `in`.eziy.attendancemaster.ui.settings
 
+import android.app.Activity
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
@@ -10,12 +11,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import `in`.eziy.attendancemaster.ui.components.EziyButton
 import `in`.eziy.attendancemaster.ui.components.EziyHeader
 import `in`.eziy.attendancemaster.ui.components.EziyTextField
+import `in`.eziy.attendancemaster.ui.theme.EziyNavy
 import `in`.eziy.attendancemaster.ui.theme.EziyRed
 
 @Composable
@@ -92,7 +95,7 @@ fun SettingsScreen(
                 EziyTextField(
                     value = state.companyName,
                     onValueChange = viewModel::onCompanyNameChange,
-                    label = "Company Name"
+                    label = "Company Name (e.g. VSPL)"
                 )
 
                 EziyTextField(
@@ -108,7 +111,7 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text(
-                            text = "Employee Badge ID: ${state.employeeId}",
+                            text = "Employee Badge ID: ${state.employeeId.ifBlank { "VSPL1001" }}",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -135,7 +138,7 @@ fun SettingsScreen(
                 )
 
                 Text(
-                    text = "Configure your office PBX or Linphone extension for doorphone and reception VoIP calls.",
+                    text = "Configure your office PBX domain/IP to enable intercom calls.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -143,7 +146,7 @@ fun SettingsScreen(
                 EziyTextField(
                     value = state.sipDomain,
                     onValueChange = viewModel::onSipDomainChange,
-                    label = "SIP Domain / Server IP (e.g. sip.linphone.org)"
+                    label = "SIP Domain / Server IP (e.g. 192.168.1.100 or vspl.com)"
                 )
 
                 EziyTextField(
@@ -163,7 +166,8 @@ fun SettingsScreen(
 
         EziyButton(
             text = "SAVE CHANGES",
-            onClick = viewModel::saveSettings
+            onClick = viewModel::saveSettings,
+            containerColor = EziyNavy
         )
 
         EziyButton(
@@ -172,5 +176,17 @@ fun SettingsScreen(
             containerColor = EziyRed,
             contentColor = MaterialTheme.colorScheme.onError
         )
+
+        // EXIT APPLICATION BUTTON
+        Button(
+            onClick = { (context as? Activity)?.finishAffinity() },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155))
+        ) {
+            Text("❌ EXIT APPLICATION", color = Color.White, fontWeight = FontWeight.Bold)
+        }
     }
 }

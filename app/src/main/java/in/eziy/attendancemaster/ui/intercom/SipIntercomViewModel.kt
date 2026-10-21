@@ -24,8 +24,23 @@ data class SipCallLog(
     val isVideo: Boolean = false
 )
 
+data class SpeedDialItem(
+    val id: Int,
+    val name: String,
+    val extension: String,
+    val iconEmoji: String = "📞"
+)
+
+data class SipContact(
+    val name: String,
+    val role: String,
+    val extension: String,
+    val isOnline: Boolean = true
+)
+
 data class SipIntercomUiState(
-    val sipDomain: String = "sip.linphone.org",
+    val companyName: String = "VSPL",
+    val sipDomain: String = "",
     val sipUsername: String = "",
     val sipPassword: String = "",
     val targetAddress: String = "reception",
@@ -40,7 +55,9 @@ data class SipIntercomUiState(
     val isMuted: Boolean = false,
     val isSpeakerOn: Boolean = false,
     val toastMessage: String? = null,
-    val callLogs: List<SipCallLog> = emptyList()
+    val callLogs: List<SipCallLog> = emptyList(),
+    val speedDialItems: List<SpeedDialItem> = emptyList(),
+    val contacts: List<SipContact> = emptyList()
 )
 
 class SipIntercomViewModel(
@@ -61,26 +78,68 @@ class SipIntercomViewModel(
 
     private fun loadInitialData() {
         loadSipCredentials()
-        // Load Persistent Call Logs from prefs
+
+        // Company Name from prefs
+        val rawComp = prefs.companyName.ifBlank { "VSPL" }
+        val shortCompName = rawComp.trim().split(" ").firstOrNull() ?: "VSPL"
+
+        // Persistent 3x3 Speed Dial Items (9 items)
+        var speedDialList: List<SpeedDialItem> = emptyList()
+        val sdJson = prefs.speedDialJson
+        if (sdJson.isNotBlank()) {
+            try {
+                val type = object : TypeToken<List<SpeedDialItem>>() {}.type
+                speedDialList = gson.fromJson(sdJson, type)
+            } catch (_: Exception) {}
+        }
+
+        if (speedDialList.size < 9) {
+            speedDialList = listOf(
+                SpeedDialItem(1, "Reception", "reception", "🏢"),
+                SpeedDialItem(2, "Front Gate", "gate", "🚪"),
+                SpeedDialItem(3, "Security", "security", "🛡️"),
+                SpeedDialItem(4, "CEO Office", "101", "💼"),
+                SpeedDialItem(5, "IT Support", "102", "💻"),
+                SpeedDialItem(6, "Factory Floor", "103", "🏭"),
+                SpeedDialItem(7, "HR Desk", "104", "📋"),
+                SpeedDialItem(8, "Shipping", "105", "🚚"),
+                SpeedDialItem(9, "Warehouse", "106", "📦")
+            )
+        }
+
+        // Office Directory Contacts List
+        val directoryContacts = listOf(
+            SipContact("Elena Rostova", "Design Director", "reception", isOnline = true),
+            SipContact("Marcus Chen", "VP of Engineering", "101", isOnline = true),
+            SipContact("Security Desk", "Front Gate & Patrol", "gate", isOnline = true),
+            SipContact("IT Helpdesk", "Systems & Hardware", "102", isOnline = true),
+            SipContact("HR Operations", "People & Talent", "104", isOnline = false)
+        )
+
+        // Persistent Call Logs from prefs
+        var logsList: List<SipCallLog> = emptyList()
         val json = prefs.callLogsJson
         if (json.isNotBlank()) {
             try {
                 val type = object : TypeToken<List<SipCallLog>>() {}.type
-                val savedLogs: List<SipCallLog> = gson.fromJson(json, type)
-                if (savedLogs.isNotEmpty()) {
-                    _uiState.value = _uiState.value.copy(callLogs = savedLogs)
-                    return
-                }
+                logsList = gson.fromJson(json, type)
             } catch (_: Exception) {}
         }
 
-        // Default Sample Logs if empty
-        val defaultLogs = listOf(
-            SipCallLog("🏢 Reception Intercom", "reception@sip.linphone.org", "12:42 PM", "02:15 mins", isOutgoing = true),
-            SipCallLog("🚪 Front Gate Intercom", "gate@sip.linphone.org", "Yesterday", "01:05 mins", isOutgoing = false),
-            SipCallLog("🛡️ Security Desk", "security@sip.linphone.org", "03 Oct", "00:45 mins", isOutgoing = true)
+        if (logsList.isEmpty()) {
+            logsList = listOf(
+                SipCallLog("🏢 Reception Intercom", "reception", "12:42 PM", "02:15 mins", isOutgoing = true),
+                SipCallLog("🚪 Front Gate Intercom", "gate", "Yesterday", "01:05 mins", isOutgoing = false),
+                SipCallLog("🛡️ Security Desk", "security", "03 Oct", "00:45 mins", isOutgoing = true)
+            )
+        }
+
+        _uiState.value = _uiState.value.copy(
+            companyName = shortCompName,
+            speedDialItems = speedDialList,
+            contacts = directoryContacts,
+            callLogs = logsList
         )
-        _uiState.value = _uiState.value.copy(callLogs = defaultLogs)
     }
 
     private fun setupLinphoneListeners() {
@@ -88,7 +147,7 @@ class SipIntercomViewModel(
             _uiState.value = _uiState.value.copy(
                 isConnecting = false,
                 isRegistered = isOk,
-                toastMessage = if (!isOk) "SIP Offline: $msg" else null // Silent background registration success
+                toastMessage = if (!isOk) "SIP Offline: $msg" else null
             )
         }
 
@@ -130,6 +189,17 @@ class SipIntercomViewModel(
                 else -> {}
             }
         }
+    }
+
+    fun updateSpeedDialItem(id: Int, newName: String, newExtension: String, newIcon: String) {
+        val updated = _uiState.value.speedDialItems.map { item ->
+            if (item.id == id) item.copy(name = newName, extension = newExtension, iconEmoji = newIcon)
+            else item
+        }
+        _uiState.value = _uiState.value.copy(speedDialItems = updated)
+        try {
+            prefs.speedDialJson = gson.toJson(updated)
+        } catch (_: Exception) {}
     }
 
     fun answerIncomingCall(isVideo: Boolean = false) {
@@ -185,28 +255,31 @@ class SipIntercomViewModel(
         val persistentList = updated.take(20)
         _uiState.value = _uiState.value.copy(callLogs = persistentList)
 
-        // Save to Encrypted SharedPreferences
         try {
             prefs.callLogsJson = gson.toJson(persistentList)
         } catch (_: Exception) {}
     }
 
     fun loadSipCredentials() {
-        val domain = prefs.sipDomain.ifBlank { "sip.linphone.org" }
+        val rawComp = prefs.companyName.ifBlank { "VSPL" }
+        val shortCompName = rawComp.trim().split(" ").firstOrNull() ?: "VSPL"
+
+        val domain = prefs.sipDomain
         val user = prefs.sipUsername.ifBlank { prefs.employeeId }
         val pass = prefs.sipPassword.ifBlank { prefs.pin }
 
         val alreadyRegistered = linphoneManager.isRegistered()
 
         _uiState.value = _uiState.value.copy(
+            companyName = shortCompName,
             sipDomain = domain,
             sipUsername = user,
             sipPassword = pass,
             isRegistered = alreadyRegistered,
-            isConnecting = !alreadyRegistered && user.isNotBlank()
+            isConnecting = !alreadyRegistered && user.isNotBlank() && domain.isNotBlank()
         )
 
-        if (!alreadyRegistered && user.isNotBlank()) {
+        if (!alreadyRegistered && user.isNotBlank() && domain.isNotBlank()) {
             connectSip()
         }
     }

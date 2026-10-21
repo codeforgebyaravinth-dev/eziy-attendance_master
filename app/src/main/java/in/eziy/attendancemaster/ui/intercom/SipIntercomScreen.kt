@@ -17,17 +17,15 @@ import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
-import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Cameraswitch
-import androidx.compose.material.icons.filled.ChatBubbleOutline
-import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.Dialpad
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.PhoneInTalk
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -141,7 +139,7 @@ fun SipIntercomCallOverlay(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "Intercom Extension • Eziy Enterprise",
+                            text = "Intercom Extension • ${state.companyName}",
                             color = Color.White.copy(alpha = 0.7f),
                             fontSize = 14.sp
                         )
@@ -561,11 +559,60 @@ fun SipIntercomScreen(
     val context = LocalContext.current
     var showDialSheet by remember { mutableStateOf(false) }
 
+    var editingSpeedDialItem by remember { mutableStateOf<SpeedDialItem?>(null) }
+    var editName by remember { mutableStateOf("") }
+    var editExt by remember { mutableStateOf("") }
+    var editEmoji by remember { mutableStateOf("📞") }
+
     LaunchedEffect(state.toastMessage) {
         state.toastMessage?.let { msg ->
             Toast.makeText(context, msg, Toast.LENGTH_SHORT).show()
             viewModel.clearToast()
         }
+    }
+
+    if (editingSpeedDialItem != null) {
+        AlertDialog(
+            onDismissRequest = { editingSpeedDialItem = null },
+            title = { Text("Customize Speed Dial #${editingSpeedDialItem?.id}", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    EziyTextField(
+                        value = editEmoji,
+                        onValueChange = { editEmoji = it },
+                        label = "Icon Emoji (e.g. 🏢, 🚪, 🛡️)"
+                    )
+                    EziyTextField(
+                        value = editName,
+                        onValueChange = { editName = it },
+                        label = "Button Name (e.g. Reception)"
+                    )
+                    EziyTextField(
+                        value = editExt,
+                        onValueChange = { editExt = it },
+                        label = "Target Extension (e.g. 101)"
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        editingSpeedDialItem?.let { item ->
+                            viewModel.updateSpeedDialItem(item.id, editName, editExt, editEmoji)
+                        }
+                        editingSpeedDialItem = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = EziyNavy)
+                ) {
+                    Text("SAVE")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { editingSpeedDialItem = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 
     if (showDialSheet) {
@@ -632,6 +679,7 @@ fun SipIntercomScreen(
     }
 
     val isConfigured = state.isRegistered || state.isConnecting || state.sipUsername.isNotBlank()
+    val headerTitle = "${state.companyName.uppercase()} INTERCOM"
 
     Scaffold(
         floatingActionButton = {
@@ -655,7 +703,7 @@ fun SipIntercomScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            EziyHeader(titleText = "SIP VoIP Intercom")
+            EziyHeader(titleText = headerTitle)
 
             if (!isConfigured) {
                 // UNREGISTERED STAGE: SIP LOGIN FORM
@@ -675,7 +723,7 @@ fun SipIntercomScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Enter your office PBX or Linphone SIP extension credentials to enable VoIP doorphone and reception calls.",
+                            text = "Enter your office PBX extension credentials to enable VoIP doorphone and reception calls.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -683,7 +731,7 @@ fun SipIntercomScreen(
                         EziyTextField(
                             value = state.sipDomain,
                             onValueChange = viewModel::onDomainChanged,
-                            label = "SIP Domain / Server IP (e.g. sip.linphone.org)"
+                            label = "SIP Domain / Server IP (e.g. 192.168.1.100 or vspl.com)"
                         )
 
                         EziyTextField(
@@ -707,7 +755,7 @@ fun SipIntercomScreen(
                             ) {
                                 CircularProgressIndicator(modifier = Modifier.size(24.dp))
                                 Spacer(modifier = Modifier.width(12.dp))
-                                Text("Connecting Linphone SDK...")
+                                Text("Connecting SIP Server...")
                             }
                         } else {
                             EziyButton(
@@ -720,7 +768,6 @@ fun SipIntercomScreen(
                 }
             } else {
                 // REGISTERED STAGE: SLEEK DASHBOARD
-                // Top Header Pill Status
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(16.dp),
@@ -761,7 +808,7 @@ fun SipIntercomScreen(
                             }
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "${state.sipUsername}@${state.sipDomain}",
+                                text = if (state.sipDomain.isNotBlank()) "${state.sipUsername}@${state.sipDomain}" else state.sipUsername,
                                 style = MaterialTheme.typography.bodyMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -773,7 +820,81 @@ fun SipIntercomScreen(
                     }
                 }
 
-                // SPEED DIAL QUICK CHIPS
+                // 3x3 GRID (9 SPEED DIAL CHIPS WITH EDIT MODAL)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "⚡ Quick Intercom Speed-Dial (3x3 Grid)",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(text = "Tap to call", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+
+                        // 3x3 Grid
+                        val chunked = state.speedDialItems.chunked(3)
+                        chunked.forEach { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                rowItems.forEach { item ->
+                                    Surface(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .clickable { viewModel.startCall(item.extension, isVideo = false) },
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = EziyNavy.copy(alpha = 0.08f),
+                                        border = BorderStroke(1.dp, EziyNavy.copy(alpha = 0.25f))
+                                    ) {
+                                        Box(modifier = Modifier.padding(8.dp)) {
+                                            IconButton(
+                                                onClick = {
+                                                    editEmoji = item.iconEmoji
+                                                    editName = item.name
+                                                    editExt = item.extension
+                                                    editingSpeedDialItem = item
+                                                },
+                                                modifier = Modifier
+                                                    .size(18.dp)
+                                                    .align(Alignment.TopEnd)
+                                            ) {
+                                                Icon(Icons.Default.Edit, contentDescription = "Edit", tint = EziyNavy.copy(alpha = 0.7f), modifier = Modifier.size(12.dp))
+                                            }
+
+                                            Column(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(top = 4.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                Text(item.iconEmoji, fontSize = 18.sp)
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                Text(item.name, fontWeight = FontWeight.Bold, fontSize = 11.sp, color = EziyNavy, maxLines = 1)
+                                                Text(item.extension, fontSize = 9.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // CONTACTS DIRECTORY SECTION
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
@@ -785,76 +906,59 @@ fun SipIntercomScreen(
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Text(
-                            text = "⚡ Quick Intercom Speed-Dial",
+                            text = "👥 Intercom Contacts Directory",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            // Reception Chip
-                            Surface(
+                        state.contacts.forEachIndexed { idx, contact ->
+                            Row(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { viewModel.startCall("reception", isVideo = false) },
-                                shape = RoundedCornerShape(12.dp),
-                                color = EziyNavy.copy(alpha = 0.08f),
-                                border = BorderStroke(1.dp, EziyNavy.copy(alpha = 0.3f))
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text("🏢", fontSize = 20.sp)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("Reception", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = EziyNavy)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(38.dp)
+                                            .clip(CircleShape)
+                                            .background(EziyNavy.copy(alpha = 0.1f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(contact.name.take(1).uppercase(), fontWeight = FontWeight.Bold, color = EziyNavy)
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(contact.name, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text("${contact.role} • #${contact.extension}", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                }
+
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    IconButton(
+                                        onClick = { viewModel.startCall(contact.extension, isVideo = false) },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.PhoneInTalk, contentDescription = "Voice", tint = EziyGreen, modifier = Modifier.size(20.dp))
+                                    }
+                                    IconButton(
+                                        onClick = { viewModel.startCall(contact.extension, isVideo = true) },
+                                        modifier = Modifier.size(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.Videocam, contentDescription = "Video", tint = EziyNavy, modifier = Modifier.size(20.dp))
+                                    }
                                 }
                             }
-
-                            // Gate Chip
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { viewModel.startCall("gate", isVideo = false) },
-                                shape = RoundedCornerShape(12.dp),
-                                color = EziyGreen.copy(alpha = 0.08f),
-                                border = BorderStroke(1.dp, EziyGreen.copy(alpha = 0.3f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text("🚪", fontSize = 20.sp)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("Front Gate", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = EziyGreen)
-                                }
-                            }
-
-                            // Security Chip
-                            Surface(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { viewModel.startCall("security", isVideo = false) },
-                                shape = RoundedCornerShape(12.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Text("🛡️", fontSize = 20.sp)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text("Security", fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                }
+                            if (idx < state.contacts.lastIndex) {
+                                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
                             }
                         }
                     }
                 }
 
-                // RECENT CALL LOGS LIST
+                // SCROLLABLE RECENT CALL LOGS LIST
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
@@ -866,7 +970,7 @@ fun SipIntercomScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Text(
-                            text = "🕒 Recent Intercom Call Logs",
+                            text = "🕒 Recent Intercom Call History",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold
                         )
@@ -878,37 +982,45 @@ fun SipIntercomScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         } else {
-                            state.callLogs.forEachIndexed { idx, log ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clickable { viewModel.startCall(log.extension, isVideo = log.isVideo) }
-                                        .padding(vertical = 6.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
-                                            contentDescription = "Call Type",
-                                            tint = if (log.isOutgoing) EziyGreen else EziyNavy,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Column {
-                                            Text(text = log.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
-                                            Text(
-                                                text = "${log.extension} • ${log.durationText}",
-                                                fontSize = 11.sp,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .heightIn(max = 240.dp)
+                                    .verticalScroll(rememberScrollState()),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                state.callLogs.forEachIndexed { idx, log ->
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { viewModel.startCall(log.extension, isVideo = log.isVideo) }
+                                            .padding(vertical = 6.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = if (log.isOutgoing) Icons.AutoMirrored.Filled.CallMade else Icons.AutoMirrored.Filled.CallReceived,
+                                                contentDescription = "Call Type",
+                                                tint = if (log.isOutgoing) EziyGreen else EziyNavy,
+                                                modifier = Modifier.size(18.dp)
                                             )
+                                            Spacer(modifier = Modifier.width(10.dp))
+                                            Column {
+                                                Text(text = log.title, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                                Text(
+                                                    text = "${log.extension} • ${log.durationText}",
+                                                    fontSize = 11.sp,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
                                         }
-                                    }
 
-                                    Text(text = log.timeAgo, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                if (idx < state.callLogs.lastIndex) {
-                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                                        Text(text = log.timeAgo, fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    if (idx < state.callLogs.lastIndex) {
+                                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f))
+                                    }
                                 }
                             }
                         }

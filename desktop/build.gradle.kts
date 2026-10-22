@@ -1,4 +1,3 @@
-
 plugins {
     kotlin("jvm")
     id("org.jetbrains.compose")
@@ -6,7 +5,7 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":app"))
+    implementation(project(":shared"))
     implementation(compose.desktop.currentOs)
     implementation(compose.material3)
     implementation(compose.materialIconsExtended)

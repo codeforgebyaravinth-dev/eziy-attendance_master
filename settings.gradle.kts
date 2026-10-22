@@ -19,3 +19,5 @@ dependencyResolutionManagement {
 }
 rootProject.name = "AttendanceMaster"
 include(":app")
+include(":shared")
+include(":desktop")

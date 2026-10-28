@@ -1,0 +1,82 @@
+<UserControl x:Class="EziyAttendanceMaster.Views.HistoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vms="clr-namespace:EziyAttendanceMaster.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=vms:HistoryViewModel}"
+             Background="{StaticResource EziyBgBrush}">
+    <Grid Margin="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,24">
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="🕒 Attendance History &amp; Timesheets" FontWeight="Bold" FontSize="22" Foreground="{StaticResource EziyNavyBrush}"/>
+                <TextBlock Text="Verified Check-in and Check-out historical log records" FontSize="13" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                    Style="{StaticResource PrimaryButtonStyle}"
+                    Background="{StaticResource EziyCyanLightBrush}"
+                    Foreground="{StaticResource EziyCyanBrush}"
+                    Command="{Binding LoadHistoryCommand}">
+                <TextBlock Text="🔄 Refresh Logs" FontWeight="Bold" FontSize="13"/>
+            </Button>
+        </Grid>
+
+        <!-- History Records Table Card -->
+        <Border Grid.Row="1" Style="{StaticResource ModernCardStyle}" Padding="0" ClipToBounds="True">
+            <Grid>
+                <!-- Loading Overlay -->
+                <Grid Background="#80FFFFFF" Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}" Panel.ZIndex="10">
+                    <TextBlock Text="Loading history..." HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="SemiBold" FontSize="14" Foreground="{StaticResource EziyNavyBrush}"/>
+                </Grid>
+
+                <!-- Data Table -->
+                <ListView ItemsSource="{Binding Records}" BorderThickness="0" Background="Transparent" SelectionMode="Single">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="CHECK IN TIME" Width="260">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="6,8">
+                                            <TextBlock Text="🟢 " FontSize="12"/>
+                                            <TextBlock Text="{Binding CheckIn}" FontWeight="Bold" Foreground="{StaticResource EziyNavyBrush}"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Header="CHECK OUT TIME" Width="260">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" Margin="6,8">
+                                            <TextBlock Text="🔴 " FontSize="12"/>
+                                            <TextBlock Text="{Binding CheckOut}" FontWeight="SemiBold" Foreground="#475569"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+
+                            <GridViewColumn Header="WORKED DURATION" Width="180">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border Background="{StaticResource EziyCyanLightBrush}" CornerRadius="12" Padding="10,4" Margin="6,6" HorizontalAlignment="Left">
+                                            <TextBlock Text="{Binding WorkedHours, StringFormat={}{0:F1} Hours}" FontWeight="Bold" FontSize="12" Foreground="{StaticResource EziyCyanBrush}"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
+

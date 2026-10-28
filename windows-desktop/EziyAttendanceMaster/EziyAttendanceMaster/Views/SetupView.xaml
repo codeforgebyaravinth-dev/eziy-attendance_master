@@ -1,0 +1,75 @@
+<UserControl x:Class="EziyAttendanceMaster.Views.SetupView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vms="clr-namespace:EziyAttendanceMaster.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=vms:SetupViewModel}"
+             Background="{StaticResource EziyBgBrush}">
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="480" Margin="24,40">
+                
+                <!-- Brand Badge -->
+                <StackPanel HorizontalAlignment="Center" Margin="0,0,0,24">
+                    <Border Background="{StaticResource EziyNavyBrush}" CornerRadius="12" Width="64" Height="64" HorizontalAlignment="Center">
+                        <TextBlock Text="🏢" FontSize="30" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <TextBlock Text="VSPL ATTENDANCE MASTER" FontWeight="Bold" FontSize="20" Foreground="{StaticResource EziyNavyBrush}" Margin="0,12,0,4" HorizontalAlignment="Center"/>
+                    <TextBlock Text="Enterprise Station Setup &amp; Authentication" FontSize="13" Foreground="{StaticResource EziyMutedTextBrush}" HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- Setup Form Card -->
+                <Border Style="{StaticResource ModernCardStyle}" Padding="32">
+                    <StackPanel>
+                        <TextBlock Text="Connect to Odoo ERP" FontWeight="Bold" FontSize="16" Foreground="{StaticResource EziyNavyBrush}" Margin="0,0,0,16"/>
+
+                        <!-- Error Banner -->
+                        <Border Background="#FEE2E2" BorderBrush="{StaticResource EziyRedBrush}" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,16"
+                                Visibility="{Binding ErrorMessage, Converter={StaticResource NullToVisibilityConverter}, FallbackValue=Collapsed}">
+                            <TextBlock Text="{Binding ErrorMessage}" Foreground="{StaticResource EziyRedBrush}" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                        </Border>
+
+                        <!-- Server URL -->
+                        <TextBlock Text="SERVER URL (HTTPS OR DEMO)" FontSize="11" FontWeight="Bold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource ModernTextBoxStyle}" Text="{Binding ServerUrl, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
+
+                        <!-- Company Name -->
+                        <TextBlock Text="COMPANY NAME" FontSize="11" FontWeight="Bold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource ModernTextBoxStyle}" Text="{Binding CompanyName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
+
+                        <!-- Employee Name -->
+                        <TextBlock Text="EMPLOYEE NAME" FontSize="11" FontWeight="Bold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource ModernTextBoxStyle}" Text="{Binding EmployeeName, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,16"/>
+
+                        <!-- 8-Digit Badge ID -->
+                        <TextBlock Text="8-DIGIT BADGE ID" FontSize="11" FontWeight="Bold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource ModernTextBoxStyle}" Text="{Binding EmployeeId, UpdateSourceTrigger=PropertyChanged}" MaxLength="8" Margin="0,0,0,16"/>
+
+                        <!-- PIN Code -->
+                        <TextBlock Text="ATTENDANCE PIN" FontSize="11" FontWeight="Bold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,6"/>
+                        <TextBox Style="{StaticResource ModernTextBoxStyle}" Text="{Binding Pin, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,24"/>
+
+                        <!-- Authenticate Button -->
+                        <Button Style="{StaticResource PrimaryButtonStyle}" 
+                                Command="{Binding AuthenticateCommand}"
+                                Height="48"
+                                IsEnabled="{Binding IsLoading, Converter={StaticResource InverseBooleanConverter}, FallbackValue=True}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="🔒 Authenticate &amp; Continue" FontSize="14" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Button>
+
+                        <TextBlock Text="For testing without Odoo ERP server, use: https://demo" 
+                                   Foreground="{StaticResource EziyMutedTextBrush}" 
+                                   FontSize="11" 
+                                   TextAlignment="Center" 
+                                   Margin="0,16,0,0"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

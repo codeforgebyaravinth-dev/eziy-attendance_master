@@ -1,0 +1,126 @@
+<UserControl x:Class="EziyAttendanceMaster.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vms="clr-namespace:EziyAttendanceMaster.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=vms:HomeViewModel}"
+             Background="{StaticResource EziyBgBrush}">
+    <Grid Margin="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Header & Profile Banner -->
+        <Grid Grid.Row="0" Margin="0,0,0,24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Border Background="{StaticResource EziyCyanLightBrush}" CornerRadius="28" Width="56" Height="56" Margin="0,0,16,0">
+                    <TextBlock Text="👤" FontSize="26" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="{Binding EmployeeName}" FontWeight="Bold" FontSize="22" Foreground="{StaticResource EziyNavyBrush}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding CompanyName}" FontWeight="SemiBold" FontSize="13" Foreground="{StaticResource EziyCyanBrush}"/>
+                        <TextBlock Text=" • Badge #" FontSize="13" Foreground="{StaticResource EziyMutedTextBrush}"/>
+                        <TextBlock Text="{Binding EmployeeId}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource EziyMutedTextBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Sync Status Button -->
+            <Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" Command="{Binding RefreshStatusCommand}" Background="{StaticResource EziyCyanLightBrush}" Foreground="{StaticResource EziyCyanBrush}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🔄 Refresh Status" FontWeight="Bold" FontSize="13"/>
+                </StackPanel>
+            </Button>
+        </Grid>
+
+        <!-- Main Dashboard Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel MaxWidth="800" HorizontalAlignment="Left">
+
+                <!-- Toast / Alert Notification -->
+                <Border Background="#EFF6FF" BorderBrush="#BFDBFE" BorderThickness="1" CornerRadius="8" Padding="12" Margin="0,0,0,20"
+                        Visibility="{Binding ToastMessage, Converter={StaticResource NullToVisibilityConverter}}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="ℹ️ " FontSize="14"/>
+                        <TextBlock Text="{Binding ToastMessage}" Foreground="{StaticResource EziyNavyBrush}" FontWeight="SemiBold"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Hero Shift Dashboard Card -->
+                <Border Style="{StaticResource ModernCardStyle}" Padding="32" Margin="0,0,0,24">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,16">
+                            <StackPanel>
+                                <TextBlock Text="CURRENT WORK SHIFT" FontSize="11" FontWeight="Bold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,6"/>
+                                <TextBlock Text="{Binding TimeText}" FontWeight="Bold" FontSize="24" Foreground="{StaticResource EziyNavyBrush}"/>
+                            </StackPanel>
+
+                            <!-- Live Checked Status Badge -->
+                            <Border HorizontalAlignment="Right" VerticalAlignment="Top" CornerRadius="16" Padding="14,6"
+                                    Background="{Binding IsCheckedIn, Converter={StaticResource BoolToColorConverter}}">
+                                <TextBlock Text="{Binding StatusBadgeText}" FontWeight="Bold" FontSize="12" Foreground="White"/>
+                            </Border>
+                        </Grid>
+
+                        <!-- Progress Bar & Shift Goal -->
+                        <TextBlock Text="Daily Shift Target (8.0 Hours)" FontSize="12" FontWeight="SemiBold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,8,0,6"/>
+                        <Grid Margin="0,0,0,8">
+                            <ProgressBar Height="12" Value="{Binding ShiftProgress}" Maximum="1.0" Foreground="{StaticResource EziyCyanBrush}" Background="#E2E8F0" BorderThickness="0"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,28">
+                            <TextBlock Text="{Binding WorkedHoursFormatted}" FontWeight="Bold" FontSize="13" Foreground="{StaticResource EziyNavyBrush}"/>
+                            <TextBlock Text="{Binding ShiftProgress, Converter={StaticResource PercentageConverter}}" HorizontalAlignment="Right" FontWeight="Bold" FontSize="13" Foreground="{StaticResource EziyCyanBrush}"/>
+                        </Grid>
+
+                        <!-- Big Dynamic Clock In / Clock Out Button -->
+                        <Button Height="60" Style="{StaticResource PillButtonStyle}" 
+                                Command="{Binding OpenCameraCommand}"
+                                Background="{Binding IsCheckedIn, Converter={StaticResource BoolToColorConverter}}">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <TextBlock Text="📸 " FontSize="20"/>
+                                <TextBlock Text="{Binding ClockButtonText}" FontSize="16" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
+
+                <!-- Secondary Info Cards -->
+                <UniformGrid Columns="2" Margin="0,0,0,24">
+                    <!-- Check-in Time Card -->
+                    <Border Style="{StaticResource ModernCardStyle}" Padding="20" Margin="0,0,12,0">
+                        <StackPanel>
+                            <TextBlock Text="LAST CHECK IN" FontSize="11" FontWeight="Bold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding LastCheckInTime}" FontWeight="Bold" FontSize="16" Foreground="{StaticResource EziyNavyBrush}"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Check-out Time Card -->
+                    <Border Style="{StaticResource ModernCardStyle}" Padding="20" Margin="12,0,0,0">
+                        <StackPanel>
+                            <TextBlock Text="LAST CHECK OUT" FontSize="11" FontWeight="Bold" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,4"/>
+                            <TextBlock Text="{Binding LastCheckOutTime}" FontWeight="Bold" FontSize="16" Foreground="{StaticResource EziyNavyBrush}"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- GPS & Verification Readiness Chip -->
+                <Border Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" CornerRadius="10" Padding="14,12">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📍" FontSize="16" Margin="0,0,8,0"/>
+                        <TextBlock Text="Windows High-Precision Location Ready • Face Verification Active" FontWeight="SemiBold" FontSize="13" Foreground="#166534"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
+

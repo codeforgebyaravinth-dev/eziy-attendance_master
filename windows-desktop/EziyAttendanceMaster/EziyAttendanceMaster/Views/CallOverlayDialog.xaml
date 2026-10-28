@@ -1,0 +1,101 @@
+<Window x:Class="EziyAttendanceMaster.Views.CallOverlayDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:linphone="clr-namespace:EziyAttendanceMaster.Linphone"
+        xmlns:vms="clr-namespace:EziyAttendanceMaster.ViewModels"
+        Title="Active Intercom Call" 
+        Height="700" Width="880"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResize"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent">
+
+    <Border Background="{StaticResource EziyNavyBrush}" CornerRadius="20" Padding="20" BorderBrush="#334155" BorderThickness="1">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <!-- Top Call Header -->
+            <Grid Grid.Row="0" Margin="0,0,0,16">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="📞 VSPL INTERCOM ACTIVE" FontWeight="Bold" FontSize="16" Foreground="{StaticResource EziyCyanLightBrush}"/>
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding TargetAddress}" FontWeight="Bold" FontSize="20" Foreground="White"/>
+                        <TextBlock Text=" • " Foreground="{StaticResource EziyMutedTextBrush}" FontSize="18"/>
+                        <TextBlock Text="{Binding CallDurationFormatted}" FontWeight="Bold" FontSize="18" Foreground="{StaticResource EziyGreenBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Incoming Indicator or Connected Status -->
+                <Border HorizontalAlignment="Right" VerticalAlignment="Center" CornerRadius="12" Padding="12,6"
+                        Background="#1E293B">
+                    <TextBlock Text="{Binding IsCallConnected, Converter={StaticResource BooleanToConnectedTextConverter}, FallbackValue='Connecting...'}" 
+                               FontWeight="Bold" FontSize="13" Foreground="{StaticResource EziyCyanLightBrush}"/>
+                </Border>
+            </Grid>
+
+            <!-- Video Windows Stage -->
+            <Border Grid.Row="1" Background="#020617" CornerRadius="16" ClipToBounds="True">
+                <Grid>
+                    <!-- Remote Full Video Feed (HWND) -->
+                    <linphone:LinphoneVideoHost x:Name="RemoteVideoHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+
+                    <!-- Local Camera Self-View Picture-in-Picture (HWND) -->
+                    <Border Width="180" Height="240" CornerRadius="12" BorderBrush="{StaticResource EziyCyanBrush}" BorderThickness="2"
+                            HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="20" Background="#0F172A" ClipToBounds="True">
+                        <linphone:LinphoneVideoHost x:Name="PreviewVideoHost" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <!-- Bottom Call Control Actions -->
+            <Grid Grid.Row="2" Margin="0,20,0,0">
+                <!-- If Incoming Call: Show Accept & Decline Buttons -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" 
+                            Visibility="{Binding IsIncomingCall, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Background="{StaticResource EziyGreenBrush}"
+                            Command="{Binding AnswerAudioCallCommand}" Height="48" Margin="0,0,16,0" Padding="24,0">
+                        <TextBlock Text="📞 Answer Audio" FontWeight="Bold" FontSize="14"/>
+                    </Button>
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Background="{StaticResource EziyCyanBrush}"
+                            Command="{Binding AnswerVideoCallCommand}" Height="48" Margin="0,0,16,0" Padding="24,0">
+                        <TextBlock Text="📹 Answer Video" FontWeight="Bold" FontSize="14"/>
+                    </Button>
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Background="{StaticResource EziyRedBrush}"
+                            Command="{Binding HangUpCommand}" Height="48" Padding="24,0" Click="OnHangUpClicked">
+                        <TextBlock Text="✕ Decline" FontWeight="Bold" FontSize="14"/>
+                    </Button>
+                </StackPanel>
+
+                <!-- In-Call Actions (Connected or Outgoing) -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                            Visibility="{Binding IsIncomingCall, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                    <!-- Mute Toggle -->
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Background="#334155" Height="48" Margin="0,0,12,0"
+                            Command="{Binding ToggleMuteCommand}" Padding="18,0">
+                        <TextBlock Text="{Binding IsMuted, Converter={StaticResource BooleanToMuteTextConverter}, FallbackValue='🎤 Mute'}" 
+                                   FontWeight="Bold" FontSize="13"/>
+                    </Button>
+
+                    <!-- Video Toggle -->
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Background="#334155" Height="48" Margin="0,0,12,0"
+                            Command="{Binding ToggleVideoMidCallCommand}" Padding="18,0">
+                        <TextBlock Text="{Binding IsVideoCall, Converter={StaticResource BooleanToVideoTextConverter}, FallbackValue='📹 Toggle Video'}" 
+                                   FontWeight="Bold" FontSize="13"/>
+                    </Button>
+
+                    <!-- Hangup Button -->
+                    <Button Style="{StaticResource PrimaryButtonStyle}" Background="{StaticResource EziyRedBrush}" Height="48"
+                            Command="{Binding HangUpCommand}" Click="OnHangUpClicked" Padding="28,0">
+                        <TextBlock Text="🛑 END CALL" FontWeight="Bold" FontSize="14"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Border>
+</Window>
+

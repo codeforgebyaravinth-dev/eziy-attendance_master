@@ -1,0 +1,161 @@
+<UserControl x:Class="EziyAttendanceMaster.Views.SipIntercomView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vms="clr-namespace:EziyAttendanceMaster.ViewModels"
+             mc:Ignorable="d" 
+             d:DataContext="{d:DesignInstance Type=vms:SipIntercomViewModel}"
+             Background="{StaticResource EziyBgBrush}">
+    <Grid Margin="32">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Intercom Station Header -->
+        <Grid Grid.Row="0" Margin="0,0,0,20">
+            <StackPanel VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding CompanyName}" FontWeight="Bold" FontSize="22" Foreground="{StaticResource EziyNavyBrush}"/>
+                    <TextBlock Text=" Intercom Station" FontWeight="Bold" FontSize="22" Foreground="{StaticResource EziyNavyBrush}"/>
+                </StackPanel>
+                <TextBlock Text="Enterprise Linphone SIP VoIP Station Active" FontSize="13" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- SIP Status Badge -->
+            <Border HorizontalAlignment="Right" VerticalAlignment="Center" CornerRadius="14" Padding="12,6"
+                    Background="{Binding IsRegistered, Converter={StaticResource BoolToColorConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="● " FontSize="11" Foreground="White"/>
+                    <TextBlock Text="{Binding IsRegistered, Converter={StaticResource BooleanToRegisteredTextConverter}, FallbackValue='SIP Online'}" 
+                               FontWeight="Bold" FontSize="12" Foreground="White"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Quick Dialer Bar Card -->
+        <Border Grid.Row="1" Style="{StaticResource ModernCardStyle}" Padding="20" Margin="0,0,0,24">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBox Grid.Column="0" Style="{StaticResource ModernTextBoxStyle}" 
+                         Text="{Binding TargetAddress, UpdateSourceTrigger=PropertyChanged}" 
+                         Margin="0,0,16,0"
+                         VerticalContentAlignment="Center"
+                         FontSize="15"
+                         FontWeight="SemiBold"/>
+
+                <!-- Audio Call Button -->
+                <Button Grid.Column="1" Style="{StaticResource PrimaryButtonStyle}" 
+                        Command="{Binding StartAudioCallCommand}"
+                        CommandParameter="{Binding TargetAddress}"
+                        Background="{StaticResource EziyNavyBrush}"
+                        Margin="0,0,12,0"
+                        Height="42">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📞 Voice Call" FontWeight="Bold" FontSize="13"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Video Call Button -->
+                <Button Grid.Column="2" Style="{StaticResource PrimaryButtonStyle}" 
+                        Command="{Binding StartVideoCallCommand}"
+                        CommandParameter="{Binding TargetAddress}"
+                        Background="{StaticResource EziyCyanBrush}"
+                        Height="42">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📹 Video Call" FontWeight="Bold" FontSize="13"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+
+        <!-- Main Workspace: 3x3 Speed Dial + Contacts Directory & Call History -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="1.2*"/>
+                <ColumnDefinition Width="0.8*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: 3x3 Speed Dial Station Grid -->
+            <Border Grid.Column="0" Style="{StaticResource ModernCardStyle}" Padding="24" Margin="0,0,16,0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="⚡ 3x3 SPEED DIAL STATION" FontWeight="Bold" FontSize="12" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,16"/>
+
+                    <ItemsControl Grid.Row="1" ItemsSource="{Binding SpeedDialItems}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="3" Rows="3"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Margin="6" Style="{StaticResource ModernCardStyle}" BorderThickness="1"
+                                        Command="{Binding DataContext.StartAudioCallCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding Extension}"
+                                        Background="#F8FAFC"
+                                        Cursor="Hand">
+                                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="10">
+                                        <TextBlock Text="{Binding IconEmoji}" FontSize="28" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                        <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource EziyNavyBrush}" HorizontalAlignment="Center"/>
+                                        <TextBlock Text="{Binding Extension}" FontSize="11" Foreground="{StaticResource EziyCyanBrush}" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </Grid>
+            </Border>
+
+            <!-- Right: Enterprise Directory & Call Logs -->
+            <Border Grid.Column="1" Style="{StaticResource ModernCardStyle}" Padding="20">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="📖 DIRECTORY CONTACTS" FontWeight="Bold" FontSize="12" Foreground="{StaticResource EziyMutedTextBrush}" Margin="0,0,0,12"/>
+
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Contacts}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BorderBrush="{StaticResource EziyBorderBrush}" BorderThickness="0,0,0,1" Padding="0,10">
+                                        <Grid>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Name}" FontWeight="Bold" FontSize="14" Foreground="{StaticResource EziyNavyBrush}"/>
+                                                <TextBlock Text="{Binding Role}" FontSize="12" Foreground="{StaticResource EziyMutedTextBrush}"/>
+                                            </StackPanel>
+                                            <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                    Style="{StaticResource PrimaryButtonStyle}"
+                                                    Background="{StaticResource EziyCyanLightBrush}"
+                                                    Foreground="{StaticResource EziyCyanBrush}"
+                                                    Padding="12,6"
+                                                    Command="{Binding DataContext.StartAudioCallCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding Extension}">
+                                                <TextBlock Text="Call" FontSize="11" FontWeight="Bold"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
+
